@@ -19,8 +19,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BankSelect } from "@/components/payment/bank-select";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -29,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { findBank } from "@/lib/payment/vn-banks";
 import { type StoreInput, storeSchema } from "@/lib/validations/settings";
 
 interface StoreRow {
@@ -78,9 +81,13 @@ export function StoreManager({ stores }: { stores: StoreRow[] }) {
                 <TableCell className="text-fg-muted">{s.address ?? "—"}</TableCell>
                 <TableCell className="text-fg-muted">
                   {s.bank_account ? (
-                    <span className="tnum">
-                      {s.bank_account}
-                      {s.bank_name ? ` · ${s.bank_name}` : ""}
+                    <span className="inline-flex items-center gap-1.5">
+                      {findBank(s.bank_name)?.logo && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={findBank(s.bank_name)!.logo} alt="" width={20} height={20} className="size-5 rounded object-contain" />
+                      )}
+                      <span className="tnum">{s.bank_account}</span>
+                      {s.bank_name ? <span className="text-xs">· {s.bank_name}</span> : null}
                     </span>
                   ) : (
                     <span className="text-fg-subtle">Theo cửa hàng</span>
@@ -103,6 +110,7 @@ export function StoreManager({ stores }: { stores: StoreRow[] }) {
       )}
 
       <StoreFormDialog
+        key={editing?.id ?? "new"}
         open={creating || editing !== null}
         store={editing}
         onClose={() => {
@@ -128,6 +136,7 @@ function StoreFormDialog({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<StoreInput>({
     resolver: zodResolver(storeSchema),
@@ -139,6 +148,9 @@ function StoreFormDialog({
       bankHolder: store?.bank_holder ?? "",
     },
   });
+
+  // State khởi tạo theo store; dialog được remount qua `key` khi đổi chi nhánh.
+  const [bankName, setBankName] = useState(store?.bank_name ?? "");
 
   async function onSubmit(values: StoreInput) {
     setServerError(null);
@@ -173,9 +185,17 @@ function StoreFormDialog({
             <p className="text-xs text-fg-muted">
               Tài khoản nhận tiền riêng cho chi nhánh (để trống = dùng tài khoản cửa hàng).
             </p>
-            <Field label="Ngân hàng" htmlFor="bankName" error={errors.bankName?.message}>
-              <Input id="bankName" placeholder="Vietcombank" {...register("bankName")} />
-            </Field>
+            <div className="space-y-1.5">
+              <Label htmlFor="bankName">Ngân hàng</Label>
+              <BankSelect
+                id="bankName"
+                value={bankName}
+                onChange={(v) => {
+                  setBankName(v);
+                  setValue("bankName", v, { shouldDirty: true });
+                }}
+              />
+            </div>
             <Field label="Số tài khoản" htmlFor="bankAccount" error={errors.bankAccount?.message}>
               <Input id="bankAccount" inputMode="numeric" placeholder="0123456789" {...register("bankAccount")} />
             </Field>

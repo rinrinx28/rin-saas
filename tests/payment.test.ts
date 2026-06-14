@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildBankQrUrl, effectiveBank, hasBank, transferMemo } from "../lib/payment/bank-qr";
+import { findBank, VN_BANKS } from "../lib/payment/vn-banks";
 import { loadEnv } from "./helpers/env";
 
 loadEnv();
@@ -35,6 +36,19 @@ describe("QR/bank (đơn vị)", () => {
   it("transferMemo: ASCII không dấu", () => {
     expect(transferMemo("HD250614-01")).toBe("TT HD250614-01");
     expect(hasBank(org)).toBe(true);
+  });
+
+  it("danh sách ngân hàng VN: mỗi mục có logo + BIN; findBank theo shortName", () => {
+    expect(VN_BANKS.length).toBeGreaterThan(30);
+    for (const b of VN_BANKS) {
+      expect(b.logo).toMatch(/^https:\/\//);
+      expect(b.bin).toMatch(/^\d{6}$/);
+      expect(b.shortName).toBeTruthy();
+    }
+    const vcb = findBank("Vietcombank");
+    expect(vcb?.bin).toBe("970436");
+    expect(vcb?.logo).toContain("cdn.vietqr.io");
+    expect(findBank("KhongCoNganHang")).toBeNull();
   });
 });
 
