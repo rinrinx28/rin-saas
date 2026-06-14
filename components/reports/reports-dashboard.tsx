@@ -65,6 +65,7 @@ export function ReportsDashboard({ initial, initialDays }: { initial: ReportData
   const [days, setDays] = useState(initialDays);
   const [data, setData] = useState(initial);
   const [loading, setLoading] = useState(false);
+  const [productMetric, setProductMetric] = useState<"revenue" | "qty" | "profit">("revenue");
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function load(d: number) {
@@ -111,11 +112,16 @@ export function ReportsDashboard({ initial, initialDays }: { initial: ReportData
   const profit = summary.revenue - summary.cogs;
   const margin = summary.revenue > 0 ? Math.round((profit / summary.revenue) * 100) : 0;
 
-  const productRows = data.topProducts.map((p) => ({
-    name: p.name,
-    value: p.revenue ?? 0,
-    sub: `Đã bán ${p.qty ?? 0}`,
-  }));
+  const productMetricValue = (p: { revenue?: number; qty?: number; profit?: number }) =>
+    productMetric === "qty" ? (p.qty ?? 0) : productMetric === "profit" ? (p.profit ?? 0) : (p.revenue ?? 0);
+  const productFmt = (n: number) => (productMetric === "qty" ? `${n} sp` : formatVnd(n));
+  const productRows = [...data.topProducts]
+    .sort((a, b) => productMetricValue(b) - productMetricValue(a))
+    .map((p) => ({
+      name: p.name,
+      value: productMetricValue(p),
+      sub: `Bán ${p.qty ?? 0} · Lãi ${formatVnd(p.profit ?? 0)}`,
+    }));
   const purchasedRows = data.topPurchased.map((p) => ({
     name: p.name,
     value: p.value ?? 0,
@@ -243,11 +249,49 @@ export function ReportsDashboard({ initial, initialDays }: { initial: ReportData
 
       {/* Bảng xếp hạng */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <RankCard title="Bán chạy nhất" desc="Theo doanh thu" rows={productRows} color={PALETTE[0]} />
+        <RankCard
+          title="Bán chạy nhất"
+          desc={
+            productMetric === "qty"
+              ? "Theo số lượng bán"
+              : productMetric === "profit"
+                ? "Theo lãi gộp"
+                : "Theo doanh thu"
+          }
+          rows={productRows}
+          color={PALETTE[0]}
+          format={productFmt}
+          headerAction={
+            <div className="inline-flex rounded-md border border-border bg-surface-2 p-0.5 text-xs">
+              {(
+                [
+                  ["revenue", "Doanh thu"],
+                  ["qty", "SL"],
+                  ["profit", "Lãi"],
+                ] as const
+              ).map(([m, lbl]) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setProductMetric(m)}
+                  className={cn(
+                    "rounded px-2 py-0.5 font-medium transition-colors",
+                    productMetric === m ? "bg-primary text-primary-fg" : "text-fg-muted hover:text-fg",
+                  )}
+                >
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          }
+        />
         <RankCard title="Nhập nhiều nhất" desc="Theo giá trị nhập" rows={purchasedRows} color={PALETTE[2]} />
         <RankCard title="Khách hàng hàng đầu" desc="Theo chi tiêu" rows={customerRows} color={PALETTE[1]} />
         <RankCard title="Nhà cung cấp hàng đầu" desc="Theo giá trị nhập" rows={supplierRows} color={PALETTE[4]} />
       </div>
+
+      {/* Bán ra vs Nhập vào */}
+      <SalesVsPurchasesCard rows={data.salesVsPurchases} />
     </div>
   );
 }
@@ -277,45 +321,124 @@ interface Row {
   sub: string;
 }
 
-function RankCard({ title, desc, rows, color }: { title: string; desc: string; rows: Row[]; color: string }) {
+function RankCard({
+  title,
+  desc,
+  rows,
+  color,
+  format = formatVnd,
+  headerAction,
+}: {
+  title: string;
+  desc: string;
+  rows: Row[];
+  color: string;
+  format?: (n: number) => string;
+  headerAction?: React.ReactNode;
+}) {
   const max = Math.max(...rows.map((r) => r.value), 1);
+  const total = rows.reduce((s, r) => s + r.value, 0);
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{desc}</CardDescription>
+      <CardHeader className="flex-row items-start justify-between gap-3">
+        <div>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{desc}</CardDescription>
+        </div>
+        {headerAction}
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (
           <Empty />
         ) : (
           <ol className="space-y-1.5">
-            {rows.map((r, i) => (
-              <li
-                key={`${r.name}-${i}`}
-                className="relative overflow-hidden rounded-md border border-border px-3 py-2"
-              >
-                <span
-                  aria-hidden
-                  className="absolute inset-y-0 left-0 rounded-md transition-[width] duration-500 ease-out"
-                  style={{ width: `${(r.value / max) * 100}%`, background: color, opacity: 0.12 }}
-                />
-                <div className="relative flex items-center justify-between gap-3">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="tnum w-4 shrink-0 text-xs text-fg-subtle">{i + 1}</span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium">{r.name}</span>
-                      <span className="block text-xs text-fg-muted">{r.sub}</span>
+            {rows.map((r, i) => {
+              const share = total > 0 ? Math.round((r.value / total) * 100) : 0;
+              return (
+                <li
+                  key={`${r.name}-${i}`}
+                  className="relative overflow-hidden rounded-md border border-border px-3 py-2"
+                >
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-0 left-0 rounded-md transition-[width] duration-500 ease-out"
+                    style={{ width: `${(r.value / max) * 100}%`, background: color, opacity: 0.12 }}
+                  />
+                  <div className="relative flex items-center justify-between gap-3">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="tnum w-4 shrink-0 text-xs text-fg-subtle">{i + 1}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">{r.name}</span>
+                        <span className="block text-xs text-fg-muted">{r.sub}</span>
+                      </span>
                     </span>
-                  </span>
-                  <span className="tnum shrink-0 text-sm font-semibold">{formatVnd(r.value)}</span>
-                </div>
-              </li>
-            ))}
+                    <span className="shrink-0 text-right">
+                      <span className="tnum block text-sm font-semibold">{format(r.value)}</span>
+                      <span className="tnum block text-xs text-fg-subtle">{share}%</span>
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function SalesVsPurchasesCard({ rows }: { rows: { name: string; sold: number; purchased: number }[] }) {
+  const max = Math.max(...rows.flatMap((r) => [r.sold, r.purchased]), 1);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Bán ra vs Nhập vào</CardTitle>
+        <CardDescription>Số lượng theo sản phẩm — nhận diện hàng bán nhanh / tồn đọng</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {rows.length === 0 ? (
+          <Empty />
+        ) : (
+          <>
+            <div className="mb-3 flex items-center gap-4 text-xs text-fg-muted">
+              <span className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-sm" style={{ background: "oklch(72% 0.17 155)" }} /> Bán ra
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-sm" style={{ background: "var(--primary)" }} /> Nhập vào
+              </span>
+            </div>
+            <ul className="space-y-3">
+              {rows.map((r, i) => (
+                <li key={`${r.name}-${i}`}>
+                  <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+                    <span className="truncate font-medium">{r.name}</span>
+                    <span className="tnum shrink-0 text-fg-muted">
+                      Bán {r.sold} · Nhập {r.purchased}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <Bar value={r.sold} max={max} color="oklch(72% 0.17 155)" />
+                    <Bar value={r.purchased} max={max} color="var(--primary)" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function Bar({ value, max, color }: { value: number; max: number; color: string }) {
+  return (
+    <div className="h-2 overflow-hidden rounded-full bg-surface-2">
+      <div
+        className="h-full rounded-full transition-[width] duration-500 ease-out"
+        style={{ width: `${(value / max) * 100}%`, background: color }}
+      />
+    </div>
   );
 }
 

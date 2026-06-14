@@ -15,6 +15,12 @@ export interface RankItem {
   revenue?: number;
   value?: number;
   orders?: number;
+  profit?: number;
+}
+export interface SalesVsPurchase {
+  name: string;
+  sold: number;
+  purchased: number;
 }
 export interface PaymentSlice {
   method: string;
@@ -29,6 +35,7 @@ export interface ReportData {
   topCustomers: RankItem[];
   topSuppliers: RankItem[];
   payments: PaymentSlice[];
+  salesVsPurchases: SalesVsPurchase[];
   inventory: { cost: number; retail: number };
 }
 
@@ -40,6 +47,7 @@ const EMPTY: ReportData = {
   topCustomers: [],
   topSuppliers: [],
   payments: [],
+  salesVsPurchases: [],
   inventory: { cost: 0, retail: 0 },
 };
 
@@ -60,7 +68,7 @@ export async function fetchReportData(days: number): Promise<ReportData> {
   const p = { p_org: orgId, p_from: from.toISOString(), p_to: to.toISOString() };
 
   const supabase = await createClient();
-  const [sum, daily, prods, purch, custs, sups, pays, inv] = await Promise.all([
+  const [sum, daily, prods, purch, custs, sups, pays, svp, inv] = await Promise.all([
     supabase.rpc("report_summary", p),
     supabase.rpc("report_daily_revenue", p),
     supabase.rpc("top_products", { ...p, p_limit: LIMIT }),
@@ -68,6 +76,7 @@ export async function fetchReportData(days: number): Promise<ReportData> {
     supabase.rpc("top_customers", { ...p, p_limit: LIMIT }),
     supabase.rpc("top_suppliers", { ...p, p_limit: LIMIT }),
     supabase.rpc("payment_method_breakdown", p),
+    supabase.rpc("product_sales_vs_purchases", { ...p, p_limit: LIMIT }),
     supabase.from("inventory").select("qty, product_variants(cost, price)").eq("org_id", orgId),
   ]);
 
@@ -85,6 +94,7 @@ export async function fetchReportData(days: number): Promise<ReportData> {
     topCustomers: (custs.data as RankItem[]) ?? [],
     topSuppliers: (sups.data as RankItem[]) ?? [],
     payments: (pays.data as PaymentSlice[]) ?? [],
+    salesVsPurchases: (svp.data as SalesVsPurchase[]) ?? [],
     inventory,
   };
 }
