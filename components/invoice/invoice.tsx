@@ -21,18 +21,60 @@ export interface InvoiceData {
   items: { name: string; qty: number; price: number; total: number }[];
 }
 
-type Format = "a4" | "receipt";
+type Format = "k80" | "k58" | "a4";
+
+// Khổ bill chuẩn cho bán hàng: máy in nhiệt K80/K58 + A4 (hóa đơn).
+const FORMATS: Record<
+  Format,
+  { label: string; roll: string; sheet: string; base: string; title: string; head: string; qr: number; page: string }
+> = {
+  k80: {
+    label: "K80 · 80mm",
+    roll: "80mm",
+    sheet: "w-[80mm] px-[4mm] py-[3mm]",
+    base: "text-[12px] leading-tight",
+    title: "text-base",
+    head: "text-sm",
+    qr: 150,
+    page: "@page { size: 80mm auto; margin: 0; }",
+  },
+  k58: {
+    label: "K58 · 58mm",
+    roll: "58mm",
+    sheet: "w-[58mm] px-[3mm] py-[2.5mm]",
+    base: "text-[11px] leading-tight",
+    title: "text-sm",
+    head: "text-[13px]",
+    qr: 118,
+    page: "@page { size: 58mm auto; margin: 0; }",
+  },
+  a4: {
+    label: "A4",
+    roll: "A4",
+    sheet: "w-[190mm] max-w-full p-10",
+    base: "text-sm",
+    title: "text-xl",
+    head: "text-lg",
+    qr: 200,
+    page: "@page { size: A4; margin: 12mm; }",
+  },
+};
+
+const FORMAT_KEYS = Object.keys(FORMATS) as Format[];
 
 export function Invoice({ data }: { data: InvoiceData }) {
-  const [format, setFormat] = useState<Format>("receipt");
-  const isReceipt = format === "receipt";
+  const [format, setFormat] = useState<Format>("k80");
+  const cfg = FORMATS[format];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
+    <div className="mx-auto max-w-3xl px-4 py-6 print:max-w-none print:p-0">
+      {/* Khai báo khổ giấy cho lệnh in → khớp đúng khổ máy in */}
+      <style>{`${cfg.page} @media print { html, body { background: #fff !important; } }`}</style>
+
       {/* Thanh công cụ — ẩn khi in */}
       <div className="mb-6 flex items-center justify-between gap-3 print:hidden">
         <div className="inline-flex rounded-md border border-neutral-300 bg-white p-0.5">
-          {(["receipt", "a4"] as Format[]).map((f) => (
+          {FORMAT_KEYS.map((f) => (
             <button
               key={f}
               type="button"
@@ -42,7 +84,7 @@ export function Invoice({ data }: { data: InvoiceData }) {
                 format === f ? "bg-neutral-900 text-white" : "text-neutral-600",
               )}
             >
-              {f === "receipt" ? "Bill 80mm" : "A4"}
+              {FORMATS[f].label}
             </button>
           ))}
         </div>
@@ -56,21 +98,12 @@ export function Invoice({ data }: { data: InvoiceData }) {
       </div>
 
       {/* Hóa đơn */}
-      <div
-        className={cn(
-          "mx-auto bg-white text-black shadow-sm print:shadow-none",
-          isReceipt ? "w-[80mm] p-3 text-[12px] leading-tight" : "w-full max-w-[190mm] p-10 text-sm",
-        )}
-      >
+      <div className={cn("mx-auto bg-white text-black shadow-sm print:shadow-none", cfg.sheet, cfg.base)}>
         <div className="text-center">
-          <p className={cn("font-semibold", isReceipt ? "text-base" : "text-xl")}>
-            {data.orgName}
-          </p>
+          <p className={cn("font-semibold", cfg.title)}>{data.orgName}</p>
           {data.storeName && <p>{data.storeName}</p>}
           {data.storeAddress && <p className="text-neutral-600">{data.storeAddress}</p>}
-          <p className={cn("mt-2 font-semibold uppercase", isReceipt ? "text-sm" : "text-lg")}>
-            Hóa đơn bán hàng
-          </p>
+          <p className={cn("mt-2 font-semibold uppercase", cfg.head)}>Hóa đơn bán hàng</p>
         </div>
 
         <div className="mt-3 flex flex-col gap-0.5 border-y border-dashed border-neutral-400 py-2">
@@ -112,7 +145,7 @@ export function Invoice({ data }: { data: InvoiceData }) {
           <div className="mt-3 flex flex-col items-center gap-1 border-t border-dashed border-neutral-400 pt-3">
             <p className="text-neutral-600">Quét QR để chuyển khoản</p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={data.qrUrl} alt="QR chuyển khoản" width={isReceipt ? 140 : 180} height={isReceipt ? 140 : 180} />
+            <img src={data.qrUrl} alt="QR chuyển khoản" width={cfg.qr} height={cfg.qr} />
             {data.qrMemo && <p className="tabular-nums">ND: {data.qrMemo}</p>}
           </div>
         )}
