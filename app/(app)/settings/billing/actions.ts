@@ -49,6 +49,17 @@ export async function createPaymentRequestAction(plan: string): Promise<PaymentR
   return { memo, amount };
 }
 
+// Kiểm tra trạng thái yêu cầu thanh toán (cho UI poll khi chờ webhook đối soát).
+export async function checkPaymentStatusAction(memo: string): Promise<{ status?: string }> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("payment_requests")
+    .select("status")
+    .eq("memo", memo)
+    .maybeSingle();
+  return { status: data?.status };
+}
+
 // Hạ về gói miễn phí (không cần thanh toán).
 export async function downgradeToFreeAction(): Promise<ActionResult> {
   const orgId = await getActiveOrgId();

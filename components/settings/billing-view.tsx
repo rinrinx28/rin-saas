@@ -1,10 +1,11 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
+  checkPaymentStatusAction,
   createPaymentRequestAction,
   downgradeToFreeAction,
   simulatePaymentAction,
@@ -68,6 +69,11 @@ export function BillingView({
   const [pending, setPending] = useState<PlanKey | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [payment, setPayment] = useState<PaymentState | null>(null);
+
+  const handlePaid = useCallback(() => {
+    setPayment(null);
+    router.refresh();
+  }, [router]);
 
   async function choose(plan: PlanKey) {
     if (plan === currentPlan) return;
@@ -179,10 +185,7 @@ export function BillingView({
         bank={bank}
         simulateEnabled={simulateEnabled}
         onClose={() => setPayment(null)}
-        onPaid={() => {
-          setPayment(null);
-          router.refresh();
-        }}
+        onPaid={handlePaid}
       />
     </div>
   );
@@ -203,6 +206,23 @@ function PaymentDialog({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Poll trạng thái: khi SePay webhook đối soát xong (paid) → tự đóng + nâng gói.
+  useEffect(() => {
+    if (!payment) return;
+    let active = true;
+    const iv = setInterval(async () => {
+      const res = await checkPaymentStatusAction(payment.memo);
+      if (active && res.status === "paid") {
+        clearInterval(iv);
+        onPaid();
+      }
+    }, 3000);
+    return () => {
+      active = false;
+      clearInterval(iv);
+    };
+  }, [payment, onPaid]);
 
   async function simulate() {
     if (!payment) return;
@@ -254,6 +274,9 @@ function PaymentDialog({
             </div>
             <p className="text-xs text-fg-subtle">
               ⚠️ Chuyển khoản đúng nội dung “{desc}” để hệ thống tự đối soát.
+            </p>
+            <p className="flex items-center justify-center gap-2 text-sm text-fg-muted">
+              <Loader2 className="size-4 animate-spin" /> Đang chờ xác nhận thanh toán…
             </p>
             {error && <p className="text-sm text-danger">{error}</p>}
           </div>
