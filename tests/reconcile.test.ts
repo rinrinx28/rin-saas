@@ -116,6 +116,17 @@ describe("Đối soát — cloud e2e (reconcileWebhook)", () => {
     expect(o.data!.paid).toBe(100000); // chỉ áp một lần
   });
 
+  it("khớp đúng đơn nhưng đơn đã đủ tiền → already_paid (không áp thêm)", async () => {
+    const cust = await newCustomer("KH-ap");
+    const order = await newOrder(cust);
+    const r1 = await reconcileWebhook("sepay", TOKEN, apikey, body(`ap1-${STAMP}`, 100000, order.code));
+    expect(r1.status).toBe("matched");
+    const r2 = await reconcileWebhook("sepay", TOKEN, apikey, body(`ap2-${STAMP}`, 100000, order.code));
+    expect(r2.status).toBe("already_paid");
+    const o = await admin.from("orders").select("paid").eq("id", order.id).single();
+    expect(o.data!.paid).toBe(100000); // không cộng dồn lần hai
+  });
+
   it("sai mã đơn → unmatched", async () => {
     const r = await reconcileWebhook("sepay", TOKEN, apikey, body(`nomatch-${STAMP}`, 50000, "HD999999-999999"));
     expect(r.status).toBe("unmatched");

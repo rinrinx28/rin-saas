@@ -36,6 +36,7 @@ interface BankTxn {
 
 const TXN_BADGE: Record<string, { label: string; variant: "success" | "warning" | "neutral" | "info" }> = {
   matched: { label: "Đã khớp", variant: "success" },
+  already_paid: { label: "Đơn đã đủ tiền", variant: "info" },
   unmatched: { label: "Chưa khớp", variant: "warning" },
   duplicate: { label: "Trùng", variant: "neutral" },
   pending: { label: "Đang xử lý", variant: "info" },
