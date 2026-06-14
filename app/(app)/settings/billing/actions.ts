@@ -14,6 +14,7 @@ export interface PaymentRequestResult {
   error?: string;
   memo?: string;
   amount?: number;
+  requestId?: string;
 }
 
 function genMemo(): string {
@@ -37,16 +38,20 @@ export async function createPaymentRequestAction(plan: string): Promise<PaymentR
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { error } = await supabase.from("payment_requests").insert({
-    org_id: orgId,
-    plan,
-    amount,
-    memo,
-    created_by: user?.id ?? null,
-  });
-  if (error) return { error: "Không tạo được yêu cầu thanh toán" };
+  const { data, error } = await supabase
+    .from("payment_requests")
+    .insert({
+      org_id: orgId,
+      plan,
+      amount,
+      memo,
+      created_by: user?.id ?? null,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { error: "Không tạo được yêu cầu thanh toán" };
 
-  return { memo, amount };
+  return { memo, amount, requestId: data.id };
 }
 
 // Kiểm tra trạng thái yêu cầu thanh toán (cho UI poll khi chờ webhook đối soát).

@@ -65,24 +65,37 @@ export function PosScreen({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ code: string; total: number; change: number; debt: number } | null>(null);
 
-  // Realtime: tồn kho thay đổi (chi nhánh này) → cập nhật số hiển thị
+  // Realtime: tồn kho thay đổi (chi nhánh này) → cập nhật số hiển thị.
+  // Bảng có RLS → phải set token cho socket realtime mới nhận được sự kiện.
   useEffect(() => {
+    let active = true;
     const supabase = createClient();
-    const ch = supabase
-      .channel(`inv-${storeId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "inventory", filter: `store_id=eq.${storeId}` },
-        (payload) => {
-          const row = payload.new as { variant_id?: string; qty?: number };
-          if (row?.variant_id != null && row.qty != null) {
-            setStock((s) => ({ ...s, [row.variant_id as string]: row.qty as number }));
-          }
-        },
-      )
-      .subscribe();
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!active) return;
+      if (data.session?.access_token) {
+        supabase.realtime.setAuth(data.session.access_token);
+      }
+      ch = supabase
+        .channel(`inv-${storeId}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "inventory", filter: `store_id=eq.${storeId}` },
+          (payload) => {
+            const row = payload.new as { variant_id?: string; qty?: number };
+            if (active && row?.variant_id != null && row.qty != null) {
+              setStock((s) => ({ ...s, [row.variant_id as string]: row.qty as number }));
+            }
+          },
+        )
+        .subscribe();
+    })();
+
     return () => {
-      supabase.removeChannel(ch);
+      active = false;
+      if (ch) supabase.removeChannel(ch);
     };
   }, [storeId]);
 

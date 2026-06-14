@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { createClient } from "@/lib/supabase/client";
 import {
   LIMIT_LABEL,
   type LimitKind,
@@ -46,6 +47,7 @@ interface PaymentState {
   plan: PlanKey;
   memo: string;
   amount: number;
+  id: string;
 }
 
 const KINDS: LimitKind[] = ["products", "stores", "members"];
@@ -89,8 +91,8 @@ export function BillingView({
     const res = await createPaymentRequestAction(plan);
     setPending(null);
     if (res?.error) setError(res.error);
-    else if (res.memo && res.amount != null) {
-      setPayment({ plan, memo: res.memo, amount: res.amount });
+    else if (res.memo && res.amount != null && res.requestId) {
+      setPayment({ plan, memo: res.memo, amount: res.amount, id: res.requestId });
     }
   }
 
@@ -207,19 +209,46 @@ function PaymentDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Poll trạng thái: khi SePay webhook đối soát xong (paid) → tự đóng + nâng gói.
+  // Realtime: DB đẩy sự kiện khi webhook SePay cập nhật status='paid' → tự nâng gói.
+  // Bảng có RLS nên phải set token cho socket realtime mới nhận được sự kiện.
+  // Kèm fallback poll (4s) phòng khi realtime gián đoạn.
   useEffect(() => {
     if (!payment) return;
     let active = true;
+    const supabase = createClient();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!active) return;
+      if (data.session?.access_token) {
+        supabase.realtime.setAuth(data.session.access_token);
+      }
+      channel = supabase
+        .channel(`pay-${payment.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "payment_requests",
+            filter: `id=eq.${payment.id}`,
+          },
+          (p) => {
+            if (active && (p.new as { status?: string }).status === "paid") onPaid();
+          },
+        )
+        .subscribe();
+    })();
+
     const iv = setInterval(async () => {
       const res = await checkPaymentStatusAction(payment.memo);
-      if (active && res.status === "paid") {
-        clearInterval(iv);
-        onPaid();
-      }
-    }, 3000);
+      if (active && res.status === "paid") onPaid();
+    }, 4000);
+
     return () => {
       active = false;
+      if (channel) supabase.removeChannel(channel);
       clearInterval(iv);
     };
   }, [payment, onPaid]);
