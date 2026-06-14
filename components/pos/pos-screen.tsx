@@ -23,6 +23,7 @@ import {
 } from "@/app/(pos)/pos/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import { type BankInfo, buildBankQrUrl, hasBank, transferMemo } from "@/lib/payment/bank-qr";
 import { createClient } from "@/lib/supabase/client";
 import { cn, formatVnd } from "@/lib/utils";
@@ -407,16 +408,9 @@ export function PosScreen({
               <span className="text-fg-muted">Tạm tính</span>
               <span className="tnum">{formatVnd(subtotal)}</span>
             </div>
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span className="text-fg-muted">Chiết khấu</span>
-              <Input
-                id="pos-discount"
-                type="number"
-                min={0}
-                value={discount || ""}
-                onChange={(e) => setDiscount(Number(e.target.value) || 0)}
-                className="tnum h-8 w-32 text-right"
-              />
+            <div className="space-y-1.5">
+              <span className="text-sm text-fg-muted">Chiết khấu</span>
+              <MoneyInput id="pos-discount" suggest value={discount} onChange={setDiscount} />
             </div>
             <div className="flex items-center justify-between border-t border-border pt-2">
               <span className="font-medium">Tổng cộng</span>
@@ -472,16 +466,14 @@ export function PosScreen({
 
             {method !== "transfer" && (
               <>
-                <div className="flex items-center justify-between gap-2 text-sm">
-                  <span className="text-fg-muted">Tiền khách trả</span>
-                  <Input
+                <div className="space-y-1.5">
+                  <span className="text-sm text-fg-muted">Tiền khách trả</span>
+                  <MoneyInput
                     id="pos-paid"
-                    type="number"
-                    min={0}
-                    placeholder={String(total)}
-                    value={paidStr}
-                    onChange={(e) => setPaidStr(e.target.value)}
-                    className="tnum h-8 w-32 text-right"
+                    suggest
+                    placeholder={total.toLocaleString("vi-VN")}
+                    value={paidStr === "" ? 0 : Number(paidStr)}
+                    onChange={(n) => setPaidStr(n === 0 ? "" : String(n))}
                   />
                 </div>
                 {change > 0 && (

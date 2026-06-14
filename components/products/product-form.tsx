@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MoneyField } from "@/components/ui/money-input";
 import { uploadProductImage } from "@/lib/storage";
 import { type ProductInput, productSchema } from "@/lib/validations/catalog";
 
@@ -230,10 +231,10 @@ export function ProductForm({ categories, activeOrgId, product }: ProductFormPro
                   <Input id={`v-bc-${i}`} placeholder="(tùy chọn)" {...register(`variants.${i}.barcode`)} />
                 </Field>
                 <Field label="Giá bán" htmlFor={`v-price-${i}`} error={errors.variants?.[i]?.price?.message}>
-                  <Input id={`v-price-${i}`} type="number" min={0} className="tnum" {...register(`variants.${i}.price`, { valueAsNumber: true })} />
+                  <MoneyField control={control} name={`variants.${i}.price`} id={`v-price-${i}`} />
                 </Field>
                 <Field label="Giá vốn" htmlFor={`v-cost-${i}`} error={errors.variants?.[i]?.cost?.message}>
-                  <Input id={`v-cost-${i}`} type="number" min={0} className="tnum" {...register(`variants.${i}.cost`, { valueAsNumber: true })} />
+                  <MoneyField control={control} name={`variants.${i}.cost`} id={`v-cost-${i}`} />
                 </Field>
                 <div className="flex h-full items-end">
                   <Button

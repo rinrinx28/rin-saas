@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { MoneyField, MoneyInput } from "@/components/ui/money-input";
 import { Label } from "@/components/ui/label";
 import { formatVnd } from "@/lib/utils";
 import { type PurchaseInput, purchaseSchema } from "@/lib/validations/purchase";
@@ -164,7 +165,7 @@ export function PurchaseForm({ stores, variants, suppliers, activeStoreId }: Pur
                   <Input id={`it-q-${i}`} type="number" min={1} className="tnum" {...register(`items.${i}.qty`, { valueAsNumber: true })} />
                 </Field>
                 <Field label="Giá vốn" htmlFor={`it-c-${i}`} error={errors.items?.[i]?.cost?.message}>
-                  <Input id={`it-c-${i}`} type="number" min={0} className="tnum" {...register(`items.${i}.cost`, { valueAsNumber: true })} />
+                  <MoneyField control={control} name={`items.${i}.cost`} id={`it-c-${i}`} />
                 </Field>
                 <div className="flex h-full items-end">
                   <Button type="button" variant="ghost" size="icon" aria-label="Xóa dòng" disabled={fields.length === 1} onClick={() => remove(i)}>
@@ -179,16 +180,14 @@ export function PurchaseForm({ stores, variants, suppliers, activeStoreId }: Pur
               <span className="text-sm text-fg-muted">Tổng tiền nhập</span>
               <span className="tnum text-lg font-semibold">{formatVnd(total)}</span>
             </div>
-            <div className="flex items-center justify-between gap-2">
+            <div className="space-y-1.5">
               <span className="text-sm text-fg-muted">Đã trả NCC</span>
-              <Input
+              <MoneyInput
                 id="po-paid"
-                type="number"
-                min={0}
-                placeholder={String(total)}
-                value={paidStr}
-                onChange={(e) => setPaidStr(e.target.value)}
-                className="tnum h-8 w-40 text-right"
+                suggest
+                placeholder={total.toLocaleString("vi-VN")}
+                value={paidStr === "" ? 0 : Number(paidStr)}
+                onChange={(n) => setPaidStr(n === 0 ? "" : String(n))}
               />
             </div>
             {debt > 0 && (
