@@ -1,0 +1,195 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Dark mode qua class (.dark), KHÔNG prefers-color-scheme — ADR 0002 */
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   Design tokens — ADR 0002 (màu) + 0003 (font) + 0004 (density)
+   Mọi màu dùng oklch. Light là mặc định; .dark override.
+   ============================================================ */
+:root {
+  /* Neutrals (hue 80, hơi ấm) */
+  --bg: oklch(98.5% 0.004 80);
+  --surface: oklch(99.5% 0.003 80);
+  --surface-2: oklch(96.5% 0.005 80);
+  --border: oklch(92% 0.006 80);
+  --border-strong: oklch(86% 0.007 80);
+  --fg: oklch(22% 0.01 80);
+  --fg-muted: oklch(50% 0.012 80);
+  --fg-subtle: oklch(62% 0.01 80);
+
+  /* Primary — Indigo/violet (hue 280) */
+  --primary: oklch(52% 0.17 280);
+  --primary-hover: oklch(46% 0.17 280);
+  --primary-active: oklch(42% 0.17 280);
+  --primary-fg: oklch(99% 0 0);
+  --primary-bg: oklch(95% 0.03 280);
+  --ring: oklch(52% 0.17 280);
+
+  /* Ngữ nghĩa (-fg là chữ/icon, -bg là tint nền) */
+  --success: oklch(52% 0.13 150);
+  --success-bg: oklch(95% 0.04 150);
+  --warning: oklch(55% 0.12 75);
+  --warning-bg: oklch(95% 0.05 75);
+  --danger: oklch(54% 0.19 27);
+  --danger-bg: oklch(95% 0.04 27);
+  --info: oklch(54% 0.12 240);
+  --info-bg: oklch(95% 0.03 240);
+
+  /* Bo góc — base 10 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* Đổ bóng — nhiều lớp mảnh, ám warm-neutral */
+  --shadow-sm: 0 1px 2px oklch(22% 0.01 80 / 0.06);
+  --shadow-md: 0 2px 4px oklch(22% 0.01 80 / 0.05), 0 4px 12px oklch(22% 0.01 80 / 0.07);
+  --shadow-lg: 0 4px 8px oklch(22% 0.01 80 / 0.06), 0 12px 28px oklch(22% 0.01 80 / 0.1);
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Density — mặc định comfortable; bảng/POS bật data-density="compact" */
+  --row-h: 48px;
+  --cell-py: 12px;
+  --cell-px: 16px;
+}
+
+[data-density="compact"] {
+  --row-h: 36px;
+  --cell-py: 6px;
+  --cell-px: 12px;
+}
+
+.dark {
+  --bg: oklch(18% 0.008 80);
+  --surface: oklch(21.5% 0.008 80);
+  --surface-2: oklch(25% 0.009 80);
+  --border: oklch(30% 0.01 80);
+  --border-strong: oklch(38% 0.012 80);
+  --fg: oklch(95% 0.005 80);
+  --fg-muted: oklch(68% 0.012 80);
+  --fg-subtle: oklch(56% 0.012 80);
+
+  --primary: oklch(66% 0.16 280);
+  --primary-hover: oklch(72% 0.15 280);
+  --primary-active: oklch(60% 0.16 280);
+  --primary-fg: oklch(16% 0.02 280);
+  --primary-bg: oklch(30% 0.06 280);
+  --ring: oklch(66% 0.16 280);
+
+  --success: oklch(72% 0.14 150);
+  --success-bg: oklch(27% 0.05 150);
+  --warning: oklch(78% 0.14 75);
+  --warning-bg: oklch(30% 0.05 75);
+  --danger: oklch(70% 0.17 27);
+  --danger-bg: oklch(30% 0.07 27);
+  --info: oklch(72% 0.12 240);
+  --info-bg: oklch(30% 0.05 240);
+
+  /* Dark: bóng đậm hơn + dựa border để tách lớp */
+  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.3);
+  --shadow-md: 0 2px 4px oklch(0% 0 0 / 0.3), 0 4px 12px oklch(0% 0 0 / 0.36);
+  --shadow-lg: 0 4px 8px oklch(0% 0 0 / 0.32), 0 12px 28px oklch(0% 0 0 / 0.44);
+}
+
+/* ============================================================
+   Map tokens → Tailwind utilities + biến shadcn/ui
+   ============================================================ */
+@theme inline {
+  /* Màu dự án (bg-surface, text-fg, border-border-strong, …) */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-bg: var(--primary-bg);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+
+  /* Biến chuẩn shadcn/ui (trỏ vào token dự án) */
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--fg);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--fg);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-fg);
+  --color-secondary: var(--surface-2);
+  --color-secondary-foreground: var(--fg);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--fg-muted);
+  --color-accent: var(--surface-2);
+  --color-accent-foreground: var(--fg);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: oklch(99% 0 0);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--ring);
+
+  /* Radius (rounded-sm/md/lg/xl) */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  /* Shadow (shadow-sm/md/lg) */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  /* Font — ADR 0003 */
+  --font-sans: var(--font-be-vietnam-pro), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+}
+
+/* Số đẳng chiều cho cột tiền/SL — ADR 0003 */
+@utility tnum {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2 {
+    font-family: var(--font-display);
+  }
+  *:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
