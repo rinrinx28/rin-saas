@@ -1,42 +1,48 @@
-import { ArrowLeft, Hammer, ShoppingCart } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { redirect } from "next/navigation";
+import { PosScreen, type PosItem } from "@/components/pos/pos-screen";
+import { getActiveOrgId, getActiveStoreId } from "@/lib/org";
+import { createClient } from "@/lib/supabase/server";
 
-// POS fullscreen — không sidebar (ADR 0005). Dùng root layout (font + theme).
-export default function PosPage() {
-  return (
-    <div className="flex h-dvh flex-col bg-bg">
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
-        <Button variant="ghost" size="icon" aria-label="Quay lại" asChild>
-          <Link href="/dashboard">
-            <ArrowLeft />
-          </Link>
-        </Button>
-        <ShoppingCart className="size-5 text-primary" />
-        <span className="font-display text-lg font-semibold tracking-tight">
-          Bán hàng
-        </span>
-      </header>
+interface VariantRow {
+  id: string;
+  name: string;
+  price: number;
+  barcode: string | null;
+  products: { name: string; is_active: boolean } | null;
+}
 
-      <div className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[1fr_360px]">
-        <div className="flex flex-col items-center justify-center gap-3 border-border p-8 text-center lg:border-r">
-          <div className="flex size-12 items-center justify-center rounded-full bg-surface-2 text-fg-subtle">
-            <Hammer className="size-5" />
-          </div>
-          <p className="font-medium">Màn hình bán hàng — đang xây dựng</p>
-          <p className="max-w-sm text-sm text-fg-muted">
-            Tìm/quét sản phẩm, giỏ hàng, chiết khấu, thanh toán → trừ kho.
-            Thuộc <span className="font-medium text-fg">Phase 2 — Core POS</span>.
-          </p>
-        </div>
-        <aside className="hidden flex-col bg-surface p-5 lg:flex">
-          <p className="text-sm font-medium text-fg-muted">Giỏ hàng</p>
-          <div className="mt-4 flex-1 rounded-lg border border-dashed border-border" />
-          <Button className="mt-4" disabled>
-            Thu tiền
-          </Button>
-        </aside>
-      </div>
-    </div>
+export default async function PosPage() {
+  const orgId = await getActiveOrgId();
+  if (!orgId) redirect("/onboarding");
+  const storeId = await getActiveStoreId(orgId);
+  if (!storeId) redirect("/onboarding");
+
+  const supabase = await createClient();
+  const [{ data: variants }, { data: inv }] = await Promise.all([
+    supabase
+      .from("product_variants")
+      .select("id, name, price, barcode, products(name, is_active)")
+      .order("created_at", { ascending: false }),
+    supabase.from("inventory").select("variant_id, qty").eq("store_id", storeId),
+  ]);
+
+  const qtyByVariant = new Map(
+    ((inv as { variant_id: string; qty: number }[] | null) ?? []).map((r) => [
+      r.variant_id,
+      r.qty,
+    ]),
   );
+
+  const items: PosItem[] = ((variants as VariantRow[] | null) ?? [])
+    .filter((v) => v.products?.is_active !== false)
+    .map((v) => ({
+      variantId: v.id,
+      product: v.products?.name ?? "?",
+      variant: v.name,
+      barcode: v.barcode,
+      price: v.price,
+      stock: qtyByVariant.get(v.id) ?? 0,
+    }));
+
+  return <PosScreen storeId={storeId} items={items} />;
 }
