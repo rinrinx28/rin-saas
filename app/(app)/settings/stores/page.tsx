@@ -11,7 +11,7 @@ export default async function StoresSettingsPage() {
   const supabase = await createClient();
   const { data: stores } = await supabase
     .from("stores")
-    .select("id, name, address")
+    .select("id, name, address, bank_name, bank_account, bank_holder")
     .eq("org_id", orgId)
     .order("created_at");
 

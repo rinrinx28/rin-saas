@@ -273,7 +273,7 @@ function PaymentDialog({
           acc: bank.account,
           amount: String(payment.amount),
           des: desc,
-          template: "compact",
+          template: "qronly",
         }).toString()}`
       : null;
 

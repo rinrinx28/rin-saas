@@ -16,6 +16,8 @@ export interface InvoiceData {
   discount: number;
   total: number;
   paid: number;
+  qrUrl: string | null;
+  qrMemo: string | null;
   items: { name: string; qty: number; price: number; total: number }[];
 }
 
@@ -105,6 +107,15 @@ export function Invoice({ data }: { data: InvoiceData }) {
           </div>
           <Line label={`Đã trả (${data.method})`} value={formatVnd(data.paid)} mono />
         </div>
+
+        {data.qrUrl && (
+          <div className="mt-3 flex flex-col items-center gap-1 border-t border-dashed border-neutral-400 pt-3">
+            <p className="text-neutral-600">Quét QR để chuyển khoản</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={data.qrUrl} alt="QR chuyển khoản" width={isReceipt ? 140 : 180} height={isReceipt ? 140 : 180} />
+            {data.qrMemo && <p className="tabular-nums">ND: {data.qrMemo}</p>}
+          </div>
+        )}
 
         <p className="mt-4 text-center text-neutral-600">Cảm ơn quý khách!</p>
       </div>

@@ -9,11 +9,13 @@ import {
   ShoppingCart,
   Trash2,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createSaleAction } from "@/app/(pos)/pos/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { type BankInfo, buildBankQrUrl, hasBank, transferMemo } from "@/lib/payment/bank-qr";
 import { createClient } from "@/lib/supabase/client";
 import { cn, formatVnd } from "@/lib/utils";
 
@@ -33,7 +35,15 @@ interface CartLine {
   qty: number;
 }
 
-type Method = "cash" | "transfer";
+type Method = "cash" | "transfer" | "vnpay" | "momo";
+
+const METHOD_LABEL: Record<Method, string> = {
+  cash: "Tiền mặt",
+  transfer: "Chuyển khoản",
+  vnpay: "VNPay",
+  momo: "MoMo",
+};
+const METHODS = Object.keys(METHOD_LABEL) as Method[];
 
 interface CustomerOption {
   id: string;
@@ -47,10 +57,12 @@ export function PosScreen({
   storeId,
   items,
   customers,
+  bank,
 }: {
   storeId: string;
   items: PosItem[];
   customers: CustomerOption[];
+  bank: BankInfo;
 }) {
   const [stock, setStock] = useState<Record<string, number>>(
     () => Object.fromEntries(items.map((i) => [i.variantId, i.stock])),
@@ -311,20 +323,51 @@ export function PosScreen({
               ))}
             </select>
 
-            <div className="flex gap-2">
-              {(["cash", "transfer"] as Method[]).map((m) => (
+            <div className="grid grid-cols-2 gap-2">
+              {METHODS.map((m) => (
                 <Button
                   key={m}
                   type="button"
                   variant={method === m ? "primary" : "outline"}
                   size="sm"
-                  className="flex-1"
                   onClick={() => setMethod(m)}
                 >
-                  {m === "cash" ? "Tiền mặt" : "Chuyển khoản"}
+                  {METHOD_LABEL[m]}
                 </Button>
               ))}
             </div>
+
+            {method === "transfer" &&
+              (hasBank(bank) ? (
+                <div className="flex flex-col items-center gap-2 rounded-md border border-border bg-surface-2 p-3">
+                  <Image
+                    src={buildBankQrUrl(bank, total, transferMemo("BAN HANG"))!}
+                    alt="QR chuyển khoản"
+                    width={180}
+                    height={180}
+                    className="rounded-md"
+                    unoptimized
+                  />
+                  <p className="text-center text-xs text-fg-muted">
+                    {bank.name} · <span className="tnum">{bank.account}</span>
+                    {bank.holder ? ` · ${bank.holder}` : ""}
+                  </p>
+                </div>
+              ) : (
+                <p className="rounded-md border border-warning/30 bg-warning-bg px-3 py-2 text-xs text-warning">
+                  Chưa cấu hình tài khoản nhận tiền.{" "}
+                  <Link href="/settings" className="underline">
+                    Cài đặt
+                  </Link>
+                </p>
+              ))}
+
+            {(method === "vnpay" || method === "momo") && (
+              <p className="rounded-md border border-border bg-surface-2 px-3 py-2 text-xs text-fg-muted">
+                Cổng {METHOD_LABEL[method]} đang ở chế độ adapter (chưa cấu hình merchant) — ghi nhận
+                thủ công khi nhận được tiền.
+              </p>
+            )}
 
             <div className="flex items-center justify-between gap-2 text-sm">
               <span className="text-fg-muted">Tiền khách trả</span>

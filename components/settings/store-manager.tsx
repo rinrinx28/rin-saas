@@ -35,6 +35,9 @@ interface StoreRow {
   id: string;
   name: string;
   address: string | null;
+  bank_name: string | null;
+  bank_account: string | null;
+  bank_holder: string | null;
 }
 
 export function StoreManager({ stores }: { stores: StoreRow[] }) {
@@ -64,6 +67,7 @@ export function StoreManager({ stores }: { stores: StoreRow[] }) {
             <TableRow className="hover:bg-transparent">
               <TableHead>Tên chi nhánh</TableHead>
               <TableHead>Địa chỉ</TableHead>
+              <TableHead>Tài khoản nhận tiền</TableHead>
               <TableHead className="w-24 text-right">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
@@ -72,6 +76,16 @@ export function StoreManager({ stores }: { stores: StoreRow[] }) {
               <TableRow key={s.id}>
                 <TableCell className="font-medium">{s.name}</TableCell>
                 <TableCell className="text-fg-muted">{s.address ?? "—"}</TableCell>
+                <TableCell className="text-fg-muted">
+                  {s.bank_account ? (
+                    <span className="tnum">
+                      {s.bank_account}
+                      {s.bank_name ? ` · ${s.bank_name}` : ""}
+                    </span>
+                  ) : (
+                    <span className="text-fg-subtle">Theo cửa hàng</span>
+                  )}
+                </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" aria-label="Sửa" onClick={() => setEditing(s)}>
@@ -117,7 +131,13 @@ function StoreFormDialog({
     formState: { errors, isSubmitting },
   } = useForm<StoreInput>({
     resolver: zodResolver(storeSchema),
-    values: { name: store?.name ?? "", address: store?.address ?? "" },
+    values: {
+      name: store?.name ?? "",
+      address: store?.address ?? "",
+      bankName: store?.bank_name ?? "",
+      bankAccount: store?.bank_account ?? "",
+      bankHolder: store?.bank_holder ?? "",
+    },
   });
 
   async function onSubmit(values: StoreInput) {
@@ -148,6 +168,22 @@ function StoreFormDialog({
           <Field label="Địa chỉ (tùy chọn)" htmlFor="address">
             <Input id="address" placeholder="123 Lê Lợi, Q1" {...register("address")} />
           </Field>
+
+          <div className="space-y-3 rounded-md border border-border bg-surface-2 p-3">
+            <p className="text-xs text-fg-muted">
+              Tài khoản nhận tiền riêng cho chi nhánh (để trống = dùng tài khoản cửa hàng).
+            </p>
+            <Field label="Ngân hàng" htmlFor="bankName" error={errors.bankName?.message}>
+              <Input id="bankName" placeholder="Vietcombank" {...register("bankName")} />
+            </Field>
+            <Field label="Số tài khoản" htmlFor="bankAccount" error={errors.bankAccount?.message}>
+              <Input id="bankAccount" inputMode="numeric" placeholder="0123456789" {...register("bankAccount")} />
+            </Field>
+            <Field label="Chủ tài khoản" htmlFor="bankHolder" error={errors.bankHolder?.message}>
+              <Input id="bankHolder" placeholder="NGUYEN VAN A" {...register("bankHolder")} />
+            </Field>
+          </div>
+
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>Hủy</Button>
             <Button type="submit" loading={isSubmitting}>{store ? "Lưu" : "Tạo"}</Button>

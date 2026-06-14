@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { PosScreen, type PosItem } from "@/components/pos/pos-screen";
+import { effectiveBank } from "@/lib/payment/bank-qr";
 import { getActiveOrgId, getActiveStoreId } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,14 +19,22 @@ export default async function PosPage() {
   if (!storeId) redirect("/onboarding");
 
   const supabase = await createClient();
-  const [{ data: variants }, { data: inv }, { data: customers }] = await Promise.all([
-    supabase
-      .from("product_variants")
-      .select("id, name, price, barcode, products(name, is_active)")
-      .order("created_at", { ascending: false }),
-    supabase.from("inventory").select("variant_id, qty").eq("store_id", storeId),
-    supabase.from("customers").select("id, name").order("name"),
-  ]);
+  const [{ data: variants }, { data: inv }, { data: customers }, { data: org }, { data: store }] =
+    await Promise.all([
+      supabase
+        .from("product_variants")
+        .select("id, name, price, barcode, products(name, is_active)")
+        .order("created_at", { ascending: false }),
+      supabase.from("inventory").select("variant_id, qty").eq("store_id", storeId),
+      supabase.from("customers").select("id, name").order("name"),
+      supabase.from("organizations").select("bank_name, bank_account, bank_holder").eq("id", orgId).single(),
+      supabase.from("stores").select("bank_name, bank_account, bank_holder").eq("id", storeId).single(),
+    ]);
+
+  const bank = effectiveBank(
+    { name: org?.bank_name ?? null, account: org?.bank_account ?? null, holder: org?.bank_holder ?? null },
+    { name: store?.bank_name ?? null, account: store?.bank_account ?? null, holder: store?.bank_holder ?? null },
+  );
 
   const qtyByVariant = new Map(
     ((inv as { variant_id: string; qty: number }[] | null) ?? []).map((r) => [
@@ -50,6 +59,7 @@ export default async function PosPage() {
       storeId={storeId}
       items={items}
       customers={customers ?? []}
+      bank={bank}
     />
   );
 }

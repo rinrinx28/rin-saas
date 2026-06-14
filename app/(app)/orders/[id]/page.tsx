@@ -13,13 +13,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EInvoicePanel, type EInvoiceRecord } from "@/components/orders/einvoice-panel";
+import { PaymentQrCard } from "@/components/orders/payment-qr-card";
+import { effectiveBank } from "@/lib/payment/bank-qr";
 import { getActiveOrgId, isManager } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
 import { formatVnd } from "@/lib/utils";
 
+const METHOD_LABEL: Record<string, string> = {
+  cash: "Tiền mặt",
+  transfer: "Chuyển khoản",
+  vnpay: "VNPay",
+  momo: "MoMo",
+};
+
 interface OrderDetail {
   id: string;
   code: string;
+  store_id: string;
   created_at: string;
   subtotal: number;
   discount: number;
@@ -47,7 +57,7 @@ export default async function OrderDetailPage({
   const { data } = await supabase
     .from("orders")
     .select(
-      "id, code, created_at, subtotal, discount, total, paid, status, stores(name, address), customers(name, phone), payments(method, amount), order_items(qty, price, total, product_variants(name, products(name)))",
+      "id, code, store_id, created_at, subtotal, discount, total, paid, status, stores(name, address), customers(name, phone), payments(method, amount), order_items(qty, price, total, product_variants(name, products(name)))",
     )
     .eq("id", id)
     .single();
@@ -65,10 +75,22 @@ export default async function OrderDetailPage({
   const orgId = await getActiveOrgId();
   const canManage = orgId ? await isManager(orgId) : false;
 
+  // Tài khoản nhận tiền hiệu lực (chi nhánh ghi đè cửa hàng) → QR chuyển khoản.
+  const [{ data: orgBank }, { data: storeBank }] = await Promise.all([
+    orgId
+      ? supabase.from("organizations").select("bank_name, bank_account, bank_holder").eq("id", orgId).single()
+      : Promise.resolve({ data: null }),
+    supabase.from("stores").select("bank_name, bank_account, bank_holder").eq("id", order.store_id).single(),
+  ]);
+  const bank = effectiveBank(
+    { name: orgBank?.bank_name ?? null, account: orgBank?.bank_account ?? null, holder: orgBank?.bank_holder ?? null },
+    { name: storeBank?.bank_name ?? null, account: storeBank?.bank_account ?? null, holder: storeBank?.bank_holder ?? null },
+  );
+  const remaining = Math.max(order.total - order.paid, 0);
+  const qrAmount = remaining > 0 ? remaining : order.total;
+
   const methodLabel = order.payments[0]
-    ? order.payments[0].method === "cash"
-      ? "Tiền mặt"
-      : "Chuyển khoản"
+    ? (METHOD_LABEL[order.payments[0].method] ?? order.payments[0].method)
     : "—";
 
   return (
@@ -146,6 +168,7 @@ export default async function OrderDetailPage({
             </CardContent>
           </Card>
           <EInvoicePanel orderId={order.id} einvoice={einvoice} canManage={canManage} />
+          <PaymentQrCard bank={bank} amount={qrAmount} orderCode={order.code} />
         </div>
       </div>
     </>

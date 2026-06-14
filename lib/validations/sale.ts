@@ -10,7 +10,7 @@ export const saleSchema = z.object({
   storeId: z.string().uuid(),
   customerId: z.string().optional(),
   discount: z.number().int().min(0),
-  method: z.enum(["cash", "transfer"]),
+  method: z.enum(["cash", "transfer", "vnpay", "momo"]),
   paid: z.number().int().min(0),
   items: z.array(saleItemSchema).min(1, "Giỏ hàng trống"),
 });
