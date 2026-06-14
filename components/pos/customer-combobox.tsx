@@ -132,7 +132,7 @@ export function CustomerCombobox({
               />
               <Input
                 inputMode="numeric"
-                placeholder="Số điện thoại (để tìm)"
+                placeholder="Số điện thoại"
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
                 className="tnum h-9"
