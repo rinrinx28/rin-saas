@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { checkLimit } from "@/lib/limits";
 import { getActiveOrgId, isManager } from "@/lib/org";
@@ -9,6 +10,8 @@ import { bankSchema, orgSchema, storeSchema } from "@/lib/validations/settings";
 export interface ActionResult {
   error?: string;
 }
+
+const RECONCILE_PROVIDERS = ["sepay"];
 
 const NO_PERMISSION = "Bạn không có quyền thực hiện thao tác này";
 
@@ -147,5 +150,73 @@ export async function deleteStoreAction(id: string): Promise<ActionResult> {
 
   revalidatePath("/settings/stores");
   revalidatePath("/", "layout");
+  return {};
+}
+
+// ── Đối soát tự động (payment_integrations) — ADR 0010 ──────────
+
+// Tạo tích hợp đối soát cho cửa hàng (storeId = null) hoặc một chi nhánh.
+export async function createIntegrationAction(
+  provider: string,
+  storeId: string | null,
+): Promise<ActionResult> {
+  if (!RECONCILE_PROVIDERS.includes(provider)) return { error: "Nhà cung cấp không hợp lệ" };
+  const guard = await requireManager();
+  if ("error" in guard) return guard;
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("payment_integrations").insert({
+    org_id: guard.orgId,
+    store_id: storeId,
+    provider,
+    webhook_token: randomBytes(16).toString("hex"),
+    webhook_secret: randomBytes(24).toString("hex"),
+    enabled: true,
+  });
+  if (error) return { error: "Không tạo được tích hợp" };
+
+  revalidatePath("/settings");
+  return {};
+}
+
+export async function regenerateIntegrationSecretAction(id: string): Promise<ActionResult> {
+  const guard = await requireManager();
+  if ("error" in guard) return guard;
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("payment_integrations")
+    .update({ webhook_secret: randomBytes(24).toString("hex") })
+    .eq("id", id);
+  if (error) return { error: "Không đổi được secret" };
+
+  revalidatePath("/settings");
+  return {};
+}
+
+export async function toggleIntegrationAction(id: string, enabled: boolean): Promise<ActionResult> {
+  const guard = await requireManager();
+  if ("error" in guard) return guard;
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("payment_integrations")
+    .update({ enabled })
+    .eq("id", id);
+  if (error) return { error: "Không cập nhật được tích hợp" };
+
+  revalidatePath("/settings");
+  return {};
+}
+
+export async function deleteIntegrationAction(id: string): Promise<ActionResult> {
+  const guard = await requireManager();
+  if ("error" in guard) return guard;
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("payment_integrations").delete().eq("id", id);
+  if (error) return { error: "Không xóa được tích hợp" };
+
+  revalidatePath("/settings");
   return {};
 }

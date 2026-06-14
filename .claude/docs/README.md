@@ -30,6 +30,7 @@ thiết kế & quy ước của dự án. Mỗi quyết định đã duyệt đ�
 | 0007 | [Lưu trữ ảnh (Supabase Storage)](0007-image-storage.md) | Accepted   |
 | 0008 | [Hóa đơn điện tử (HĐĐT)](0008-hoa-don-dien-tu.md)     | Accepted   |
 | 0009 | [Thanh toán: cấu hình TK, QR & cổng](0009-thanh-toan-qr-cong.md) | Accepted   |
+| 0010 | [Đối soát chuyển khoản tự động](0010-doi-soat-tu-dong.md) | Accepted   |
 
 ## Sắp tới (đang chờ brainstorm + duyệt)
 
