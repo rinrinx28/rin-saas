@@ -7,6 +7,7 @@ import { useState } from "react";
 import { deleteProductAction } from "@/app/(app)/products/actions";
 import { Pagination } from "@/components/list/pagination";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -152,30 +153,31 @@ function DeleteDialog({
   product: ProductRow | null;
   onClose: () => void;
 }) {
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function confirm() {
     if (!product) return;
     setLoading(true);
-    setError(null);
     const res = await deleteProductAction(product.id);
     setLoading(false);
-    if (res?.error) setError(res.error);
-    else onClose();
+    if (res?.error) toast.error(res.error);
+    else {
+      toast.success("Đã xoá sản phẩm");
+      onClose();
+    }
   }
 
   return (
     <Dialog open={product !== null} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Xóa sản phẩm?</DialogTitle>
+          <DialogTitle>Xoá sản phẩm?</DialogTitle>
           <DialogDescription>
-            Xóa “{product?.name}” cùng toàn bộ biến thể và tồn kho liên quan. Không
-            thể hoàn tác.
+            Xoá “{product?.name}” cùng toàn bộ biến thể và tồn kho liên quan. Hành động này
+            không thể hoàn tác.
           </DialogDescription>
         </DialogHeader>
-        {error && <p className="text-sm text-danger">{error}</p>}
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={onClose}>
             Hủy

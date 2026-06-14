@@ -24,6 +24,7 @@ import { BankSelect } from "@/components/payment/bank-select";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast";
 import {
   Table,
   TableBody,
@@ -130,7 +131,7 @@ function StoreFormDialog({
   store: StoreRow | null;
   onClose: () => void;
 }) {
-  const [serverError, setServerError] = useState<string | null>(null);
+  const toast = useToast();
   const {
     register,
     handleSubmit,
@@ -151,12 +152,14 @@ function StoreFormDialog({
   const [bankName, setBankName] = useState(store?.bank_name ?? "");
 
   async function onSubmit(values: StoreInput) {
-    setServerError(null);
     const res = store
       ? await updateStoreAction(store.id, values)
       : await createStoreAction(values);
-    if (res?.error) setServerError(res.error);
-    else onClose();
+    if (res?.error) toast.error(res.error);
+    else {
+      toast.success(store ? "Đã cập nhật chi nhánh" : "Đã thêm chi nhánh");
+      onClose();
+    }
   }
 
   return (
@@ -164,14 +167,11 @@ function StoreFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{store ? "Sửa chi nhánh" : "Thêm chi nhánh"}</DialogTitle>
-          <DialogDescription>Thông tin chi nhánh.</DialogDescription>
+          <DialogDescription>
+            Đặt tên, địa chỉ và tài khoản nhận tiền cho chi nhánh.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          {serverError && (
-            <p role="alert" className="rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger">
-              {serverError}
-            </p>
-          )}
           <Field label="Tên chi nhánh" htmlFor="name" error={errors.name?.message}>
             <Input id="name" placeholder="Chi nhánh Quận 1" {...register("name")} />
           </Field>
@@ -213,27 +213,30 @@ function StoreFormDialog({
 }
 
 function DeleteDialog({ store, onClose }: { store: StoreRow | null; onClose: () => void }) {
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function confirm() {
     if (!store) return;
     setLoading(true);
-    setError(null);
     const res = await deleteStoreAction(store.id);
     setLoading(false);
-    if (res?.error) setError(res.error);
-    else onClose();
+    if (res?.error) toast.error(res.error);
+    else {
+      toast.success("Đã xoá chi nhánh");
+      onClose();
+    }
   }
 
   return (
     <Dialog open={store !== null} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Xóa chi nhánh?</DialogTitle>
-          <DialogDescription>Xóa “{store?.name}”. Không thể hoàn tác.</DialogDescription>
+          <DialogTitle>Xoá chi nhánh?</DialogTitle>
+          <DialogDescription>
+            Chi nhánh “{store?.name}” sẽ bị xoá vĩnh viễn. Hành động này không thể hoàn tác.
+          </DialogDescription>
         </DialogHeader>
-        {error && <p className="text-sm text-danger">{error}</p>}
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={onClose}>Hủy</Button>
           <Button variant="destructive" loading={loading} onClick={confirm}>Xóa</Button>

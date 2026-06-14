@@ -11,7 +11,7 @@ export default async function SuppliersPage() {
 
   return (
     <>
-      <PageHeader title="Nhà cung cấp" description="Danh sách NCC và công nợ phải trả." />
+      <PageHeader title="Nhà cung cấp" description="Quản lý nhà cung cấp và theo dõi công nợ phải trả." />
       <SupplierManager suppliers={suppliers ?? []} />
     </>
   );

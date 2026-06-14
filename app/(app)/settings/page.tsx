@@ -75,7 +75,7 @@ export default async function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Cửa hàng" description="Thông tin tổ chức và tài khoản nhận tiền." />
+      <PageHeader title="Cửa hàng" description="Thông tin cửa hàng, phương thức thanh toán và đối soát." />
       <div className="space-y-8">
         <section className="space-y-3">
           <h2 className="font-display text-lg font-semibold tracking-tight">Thông tin</h2>

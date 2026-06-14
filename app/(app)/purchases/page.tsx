@@ -61,7 +61,7 @@ export default async function PurchasesPage({
     <>
       <PageHeader
         title="Nhập hàng"
-        description="Phiếu nhập kho từ nhà cung cấp."
+        description="Quản lý phiếu nhập hàng từ nhà cung cấp và cập nhật tồn kho."
         actions={
           <Button asChild>
             <Link href="/purchases/new">

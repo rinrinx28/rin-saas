@@ -11,7 +11,7 @@ export default async function CustomersPage() {
 
   return (
     <>
-      <PageHeader title="Khách hàng" description="Danh sách khách và công nợ." />
+      <PageHeader title="Khách hàng" description="Quản lý khách hàng và theo dõi công nợ phải thu." />
       <CustomerManager customers={customers ?? []} />
     </>
   );

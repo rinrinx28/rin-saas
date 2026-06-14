@@ -83,7 +83,7 @@ export default async function ReportsPage({
     <>
       <PageHeader
         title="Báo cáo"
-        description="Doanh thu, lãi/lỗ và giá trị tồn kho."
+        description="Phân tích doanh thu, lãi/lỗ và giá trị tồn kho theo kỳ."
         actions={
           <div className="inline-flex rounded-md border border-border bg-surface-2 p-0.5">
             {PERIODS.map((p) => (

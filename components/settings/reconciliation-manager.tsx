@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast";
 
 export interface Integration {
   id: string;
@@ -47,24 +48,18 @@ export function ReconciliationManager({
   baseUrl: string;
 }) {
   const [adding, setAdding] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-fg-muted">
-          Kết nối SePay để tự đối soát chuyển khoản. Dán URL + secret vào cấu hình webhook trên SePay.
+          Kết nối SePay để hệ thống tự động đối soát giao dịch chuyển khoản. Sao chép URL và
+          secret bên dưới vào phần cấu hình webhook trên SePay.
         </p>
         <Button size="sm" onClick={() => setAdding(true)}>
           <Plus /> Thêm tích hợp
         </Button>
       </div>
-
-      {error && (
-        <p role="alert" className="rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger">
-          {error}
-        </p>
-      )}
 
       {integrations.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border px-6 py-10 text-center">
@@ -79,13 +74,12 @@ export function ReconciliationManager({
               integration={it}
               baseUrl={baseUrl}
               scope={it.store_id ? (stores.find((s) => s.id === it.store_id)?.name ?? "Chi nhánh") : "Cửa hàng (mặc định)"}
-              onError={setError}
             />
           ))}
         </div>
       )}
 
-      <AddDialog open={adding} stores={stores} onClose={() => setAdding(false)} onError={setError} />
+      <AddDialog open={adding} stores={stores} onClose={() => setAdding(false)} />
     </div>
   );
 }
@@ -94,22 +88,21 @@ function IntegrationCard({
   integration: it,
   baseUrl,
   scope,
-  onError,
 }: {
   integration: Integration;
   baseUrl: string;
   scope: string;
-  onError: (m: string | null) => void;
 }) {
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
   const url = `${baseUrl}/api/webhooks/bank/${it.provider}/${it.webhook_token}`;
 
-  async function run(fn: () => Promise<{ error?: string }>) {
+  async function run(fn: () => Promise<{ error?: string }>, okMsg: string) {
     setBusy(true);
-    onError(null);
     const res = await fn();
     setBusy(false);
-    if (res?.error) onError(res.error);
+    if (res?.error) toast.error(res.error);
+    else toast.success(okMsg);
   }
 
   return (
@@ -129,14 +122,14 @@ function IntegrationCard({
             variant="outline"
             size="sm"
             loading={busy}
-            onClick={() => run(() => toggleIntegrationAction(it.id, !it.enabled))}
+            onClick={() => run(() => toggleIntegrationAction(it.id, !it.enabled), it.enabled ? "Đã tắt tích hợp" : "Đã bật tích hợp")}
           >
             {it.enabled ? "Tắt" : "Bật"}
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Đổi secret" disabled={busy} onClick={() => run(() => regenerateIntegrationSecretAction(it.id))}>
+          <Button variant="ghost" size="icon" aria-label="Đổi secret" disabled={busy} onClick={() => run(() => regenerateIntegrationSecretAction(it.id), "Đã tạo secret mới")}>
             <RefreshCw className="size-4" />
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Xóa" disabled={busy} onClick={() => run(() => deleteIntegrationAction(it.id))}>
+          <Button variant="ghost" size="icon" aria-label="Xóa" disabled={busy} onClick={() => run(() => deleteIntegrationAction(it.id), "Đã xoá tích hợp")}>
             <Trash2 className="size-4 text-danger" />
           </Button>
         </div>
@@ -190,24 +183,23 @@ function AddDialog({
   open,
   stores,
   onClose,
-  onError,
 }: {
   open: boolean;
   stores: StoreOpt[];
   onClose: () => void;
-  onError: (m: string | null) => void;
 }) {
+  const toast = useToast();
   const [scope, setScope] = useState("org");
   const [loading, setLoading] = useState(false);
 
   async function submit() {
     setLoading(true);
-    onError(null);
     const storeId = scope === "org" ? null : scope;
     const res = await createIntegrationAction("sepay", storeId);
     setLoading(false);
-    if (res?.error) onError(res.error);
+    if (res?.error) toast.error(res.error);
     else {
+      toast.success("Đã tạo tích hợp đối soát");
       onClose();
       setScope("org");
     }

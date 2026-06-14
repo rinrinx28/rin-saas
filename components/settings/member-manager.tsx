@@ -32,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
 import { isStoreScoped, ROLE_LABEL, roleBadge } from "@/lib/roles";
 import { type InviteMemberInput, inviteMemberSchema } from "@/lib/validations/member";
 
@@ -77,26 +78,20 @@ export function MemberManager({
   myRole: string | null;
   myUserId: string;
 }) {
+  const toast = useToast();
   const canManage = myRole === "owner" || myRole === "admin";
   const [inviting, setInviting] = useState(false);
   const [editing, setEditing] = useState<Member | null>(null);
   const [removing, setRemoving] = useState<Member | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  async function run(fn: () => Promise<{ error?: string }>) {
-    setError(null);
-    const res = await fn();
-    if (res?.error) setError(res.error);
+  async function cancelInvite(id: string) {
+    const res = await cancelInviteAction(id);
+    if (res?.error) toast.error(res.error);
+    else toast.success("Đã huỷ lời mời");
   }
 
   return (
     <div className="space-y-6">
-      {error && (
-        <p role="alert" className="rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger">
-          {error}
-        </p>
-      )}
-
       <Card>
         <div className="flex items-center justify-between border-b border-border p-4">
           <p className="text-sm text-fg-muted">{members.length} thành viên</p>
@@ -177,7 +172,7 @@ export function MemberManager({
                       variant="ghost"
                       size="icon"
                       aria-label="Huỷ lời mời"
-                      onClick={() => run(() => cancelInviteAction(i.id))}
+                      onClick={() => cancelInvite(i.id)}
                     >
                       <X className="size-4 text-danger" />
                     </Button>
@@ -209,7 +204,7 @@ function InviteDialog({
   stores: StoreOpt[];
   onClose: () => void;
 }) {
-  const [serverError, setServerError] = useState<string | null>(null);
+  const toast = useToast();
   const [role, setRole] = useState("staff");
   const {
     register,
@@ -221,10 +216,12 @@ function InviteDialog({
   });
 
   async function onSubmit(values: InviteMemberInput) {
-    setServerError(null);
     const res = await inviteMemberAction(values);
-    if (res?.error) setServerError(res.error);
-    else onClose();
+    if (res?.error) toast.error(res.error);
+    else {
+      toast.success(`Đã gửi lời mời tới ${values.email}`);
+      onClose();
+    }
   }
 
   return (
@@ -237,11 +234,6 @@ function InviteDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          {serverError && (
-            <p role="alert" className="rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger">
-              {serverError}
-            </p>
-          )}
           <Field label="Email" htmlFor="email" error={errors.email?.message}>
             <Input id="email" type="email" placeholder="nhanvien@email.com" {...register("email")} />
           </Field>
@@ -293,19 +285,21 @@ function EditDialog({
   stores: StoreOpt[];
   onClose: () => void;
 }) {
+  const toast = useToast();
   const [role, setRole] = useState(member?.role ?? "staff");
   const [storeId, setStoreId] = useState(member?.store_id ?? stores[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function save() {
     if (!member) return;
     setLoading(true);
-    setError(null);
     const res = await updateMemberAction(member.id, role, isStoreScoped(role) ? storeId : null);
     setLoading(false);
-    if (res?.error) setError(res.error);
-    else onClose();
+    if (res?.error) toast.error(res.error);
+    else {
+      toast.success("Đã cập nhật thành viên");
+      onClose();
+    }
   }
 
   return (
@@ -321,7 +315,6 @@ function EditDialog({
           <DialogDescription>{member?.email}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          {error && <p className="text-sm text-danger">{error}</p>}
           <div className="space-y-1.5">
             <Label htmlFor="edit-role">Vai trò</Label>
             <select id="edit-role" className={selectClass} value={role} onChange={(e) => setRole(e.target.value)}>
@@ -358,17 +351,19 @@ function EditDialog({
 }
 
 function RemoveDialog({ member, onClose }: { member: Member | null; onClose: () => void }) {
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function confirm() {
     if (!member) return;
     setLoading(true);
-    setError(null);
     const res = await removeMemberAction(member.id);
     setLoading(false);
-    if (res?.error) setError(res.error);
-    else onClose();
+    if (res?.error) toast.error(res.error);
+    else {
+      toast.success("Đã xoá thành viên");
+      onClose();
+    }
   }
 
   return (
@@ -378,7 +373,6 @@ function RemoveDialog({ member, onClose }: { member: Member | null; onClose: () 
           <DialogTitle>Xóa thành viên?</DialogTitle>
           <DialogDescription>Gỡ “{member?.email}” khỏi cửa hàng.</DialogDescription>
         </DialogHeader>
-        {error && <p className="text-sm text-danger">{error}</p>}
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={onClose}>
             Hủy

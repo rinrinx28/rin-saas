@@ -89,7 +89,7 @@ export default async function InventoryPage({
     <>
       <PageHeader
         title="Tồn kho"
-        description="Số lượng tồn theo chi nhánh đang chọn."
+        description="Tồn kho theo chi nhánh đang chọn, cập nhật theo thời gian thực."
         actions={
           <Button variant="outline" asChild>
             <Link href="/inventory/stocktake">

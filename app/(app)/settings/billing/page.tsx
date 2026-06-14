@@ -24,7 +24,7 @@ export default async function BillingPage() {
 
   return (
     <>
-      <PageHeader title="Gói cước" description="Gói hiện tại, mức sử dụng và nâng cấp." />
+      <PageHeader title="Gói cước" description="Gói dịch vụ hiện tại, mức sử dụng và tuỳ chọn nâng cấp." />
       <BillingView
         currentPlan={plan as PlanKey}
         usage={usage}

@@ -22,6 +22,7 @@ import {
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast";
 import {
   Table,
   TableBody,
@@ -146,7 +147,7 @@ function CategoryFormDialog({
   categories: Category[];
   onClose: () => void;
 }) {
-  const [serverError, setServerError] = useState<string | null>(null);
+  const toast = useToast();
   const {
     register,
     handleSubmit,
@@ -160,12 +161,14 @@ function CategoryFormDialog({
   });
 
   async function onSubmit(values: CategoryInput) {
-    setServerError(null);
     const res = category
       ? await updateCategoryAction(category.id, values)
       : await createCategoryAction(values);
-    if (res?.error) setServerError(res.error);
-    else onClose();
+    if (res?.error) toast.error(res.error);
+    else {
+      toast.success(category ? "Đã cập nhật danh mục" : "Đã thêm danh mục");
+      onClose();
+    }
   }
 
   const parentOptions = categories.filter((c) => c.id !== category?.id);
@@ -176,20 +179,11 @@ function CategoryFormDialog({
         <DialogHeader>
           <DialogTitle>{category ? "Sửa danh mục" : "Thêm danh mục"}</DialogTitle>
           <DialogDescription>
-            {category ? "Cập nhật thông tin danh mục." : "Tạo danh mục mới."}
+            Đặt tên và chọn danh mục cha (nếu muốn nhóm lồng nhau).
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          {serverError && (
-            <p
-              role="alert"
-              className="rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger"
-            >
-              {serverError}
-            </p>
-          )}
-
           <Field label="Tên danh mục" htmlFor="name" error={errors.name?.message}>
             <Input id="name" placeholder="Vd: Áo, Quần, Phụ kiện" {...register("name")} />
           </Field>
@@ -231,34 +225,31 @@ function DeleteDialog({
   category: Category | null;
   onClose: () => void;
 }) {
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
 
   async function confirm() {
     if (!category) return;
     setLoading(true);
-    setServerError(null);
     const res = await deleteCategoryAction(category.id);
     setLoading(false);
-    if (res?.error) setServerError(res.error);
-    else onClose();
+    if (res?.error) toast.error(res.error);
+    else {
+      toast.success("Đã xoá danh mục");
+      onClose();
+    }
   }
 
   return (
     <Dialog open={category !== null} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Xóa danh mục?</DialogTitle>
+          <DialogTitle>Xoá danh mục?</DialogTitle>
           <DialogDescription>
-            Xóa “{category?.name}”. Sản phẩm thuộc danh mục này sẽ về “chưa phân
-            loại”. Hành động không thể hoàn tác.
+            Xoá “{category?.name}”. Sản phẩm thuộc danh mục này sẽ chuyển về “chưa phân loại”.
+            Hành động này không thể hoàn tác.
           </DialogDescription>
         </DialogHeader>
-        {serverError && (
-          <p role="alert" className="text-sm text-danger">
-            {serverError}
-          </p>
-        )}
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={onClose}>
             Hủy

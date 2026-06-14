@@ -61,7 +61,7 @@ export default async function ProductsPage({
 
   return (
     <>
-      <PageHeader title="Sản phẩm" description="Quản lý sản phẩm, biến thể và hình ảnh." />
+      <PageHeader title="Sản phẩm" description="Quản lý sản phẩm, biến thể, giá bán và hình ảnh." />
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <SearchInput placeholder="Tìm theo tên hoặc SKU…" />

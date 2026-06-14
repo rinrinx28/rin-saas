@@ -17,6 +17,7 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyField } from "@/components/ui/money-input";
+import { useToast } from "@/components/ui/toast";
 import { uploadProductImage } from "@/lib/storage";
 import { type ProductInput, productSchema } from "@/lib/validations/catalog";
 
@@ -49,8 +50,8 @@ interface ProductFormProps {
 
 export function ProductForm({ categories, activeOrgId, product }: ProductFormProps) {
   const router = useRouter();
+  const toast = useToast();
   const isEdit = !!product;
-  const [serverError, setServerError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(product?.image_url ?? null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -82,24 +83,22 @@ export function ProductForm({ categories, activeOrgId, product }: ProductFormPro
 
   async function handleFile(file: File) {
     setUploading(true);
-    setServerError(null);
     try {
       const url = await uploadProductImage(file, activeOrgId);
       setImageUrl(url);
     } catch {
-      setServerError("Tải ảnh thất bại");
+      toast.error("Tải ảnh thất bại");
     } finally {
       setUploading(false);
     }
   }
 
   async function onSubmit(values: ProductInput) {
-    setServerError(null);
     const payload = { ...values, imageUrl: imageUrl ?? "" };
     const res = isEdit
       ? await updateProductAction(product.id, payload)
       : await createProductAction(payload);
-    if (res?.error) setServerError(res.error);
+    if (res?.error) toast.error(res.error);
     // thành công → action redirect /products
   }
 
@@ -111,14 +110,6 @@ export function ProductForm({ categories, activeOrgId, product }: ProductFormPro
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-        {serverError && (
-          <p
-            role="alert"
-            className="rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger"
-          >
-            {serverError}
-          </p>
-        )}
 
         <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
           {/* Thông tin chính */}

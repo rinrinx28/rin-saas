@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/ui/money-input";
 import {
   Table,
   TableBody,
@@ -30,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useToast } from "@/components/ui/toast";
 import { cn, formatVnd } from "@/lib/utils";
 import { type CustomerInput, customerSchema } from "@/lib/validations/customer";
 
@@ -127,7 +129,7 @@ function CustomerFormDialog({
   customer: Customer | null;
   onClose: () => void;
 }) {
-  const [serverError, setServerError] = useState<string | null>(null);
+  const toast = useToast();
   const {
     register,
     handleSubmit,
@@ -138,12 +140,14 @@ function CustomerFormDialog({
   });
 
   async function onSubmit(values: CustomerInput) {
-    setServerError(null);
     const res = customer
       ? await updateCustomerAction(customer.id, values)
       : await createCustomerAction(values);
-    if (res?.error) setServerError(res.error);
-    else onClose();
+    if (res?.error) toast.error(res.error);
+    else {
+      toast.success(customer ? "Đã cập nhật khách hàng" : "Đã thêm khách hàng");
+      onClose();
+    }
   }
 
   return (
@@ -151,14 +155,9 @@ function CustomerFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{customer ? "Sửa khách hàng" : "Thêm khách hàng"}</DialogTitle>
-          <DialogDescription>Thông tin liên hệ của khách.</DialogDescription>
+          <DialogDescription>Lưu tên và số điện thoại để theo dõi công nợ.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          {serverError && (
-            <p role="alert" className="rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger">
-              {serverError}
-            </p>
-          )}
           <Field label="Tên khách hàng" htmlFor="name" error={errors.name?.message}>
             <Input id="name" placeholder="Nguyễn Văn A" {...register("name")} />
           </Field>
@@ -176,26 +175,30 @@ function CustomerFormDialog({
 }
 
 function CollectDialog({ customer, onClose }: { customer: Customer | null; onClose: () => void }) {
-  const [amount, setAmount] = useState("");
+  const toast = useToast();
+  const [amount, setAmount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function confirm() {
     if (!customer) return;
-    const value = Number(amount || customer.debt);
+    const value = amount || customer.debt;
     setLoading(true);
-    setError(null);
     const res = await collectDebtAction(customer.id, value);
     setLoading(false);
-    if (res?.error) setError(res.error);
+    if (res?.error) toast.error(res.error);
     else {
-      setAmount("");
+      toast.success(`Đã thu ${formatVnd(value)} từ ${customer.name}`);
+      setAmount(0);
       onClose();
     }
   }
 
   return (
-    <Dialog open={customer !== null} onOpenChange={(o) => !o && onClose()}>
+    <Dialog
+      key={customer?.id ?? "none"}
+      open={customer !== null}
+      onOpenChange={(o) => !o && onClose()}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Thu nợ</DialogTitle>
@@ -203,17 +206,16 @@ function CollectDialog({ customer, onClose }: { customer: Customer | null; onClo
             {customer?.name} đang nợ {customer ? formatVnd(customer.debt) : ""}.
           </DialogDescription>
         </DialogHeader>
-        <Field label="Số tiền thu" htmlFor="amount" error={error ?? undefined}>
-          <Input
+        <div className="space-y-1.5">
+          <span className="text-sm text-fg-muted">Số tiền thu</span>
+          <MoneyInput
             id="amount"
-            type="number"
-            min={0}
-            placeholder={String(customer?.debt ?? 0)}
+            suggest
+            placeholder={(customer?.debt ?? 0).toLocaleString("vi-VN")}
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="tnum"
+            onChange={setAmount}
           />
-        </Field>
+        </div>
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={onClose}>Hủy</Button>
           <Button loading={loading} onClick={confirm}>Xác nhận thu</Button>
@@ -224,27 +226,30 @@ function CollectDialog({ customer, onClose }: { customer: Customer | null; onClo
 }
 
 function DeleteDialog({ customer, onClose }: { customer: Customer | null; onClose: () => void }) {
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function confirm() {
     if (!customer) return;
     setLoading(true);
-    setError(null);
     const res = await deleteCustomerAction(customer.id);
     setLoading(false);
-    if (res?.error) setError(res.error);
-    else onClose();
+    if (res?.error) toast.error(res.error);
+    else {
+      toast.success("Đã xoá khách hàng");
+      onClose();
+    }
   }
 
   return (
     <Dialog open={customer !== null} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Xóa khách hàng?</DialogTitle>
-          <DialogDescription>Xóa “{customer?.name}”. Không thể hoàn tác.</DialogDescription>
+          <DialogTitle>Xoá khách hàng?</DialogTitle>
+          <DialogDescription>
+            Khách “{customer?.name}” sẽ bị xoá vĩnh viễn. Hành động này không thể hoàn tác.
+          </DialogDescription>
         </DialogHeader>
-        {error && <p className="text-sm text-danger">{error}</p>}
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={onClose}>Hủy</Button>
           <Button variant="destructive" loading={loading} onClick={confirm}>Xóa</Button>

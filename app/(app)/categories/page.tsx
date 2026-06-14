@@ -13,7 +13,7 @@ export default async function CategoriesPage() {
     <>
       <PageHeader
         title="Danh mục"
-        description="Tổ chức sản phẩm theo nhóm (có thể lồng cha — con)."
+        description="Sắp xếp sản phẩm thành nhóm, hỗ trợ danh mục cha — con."
       />
       <CategoryManager categories={categories ?? []} />
     </>

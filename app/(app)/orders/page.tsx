@@ -69,7 +69,7 @@ export default async function OrdersPage({
 
   return (
     <>
-      <PageHeader title="Đơn hàng" description="Lịch sử bán hàng." />
+      <PageHeader title="Đơn hàng" description="Lịch sử đơn bán và trạng thái thanh toán." />
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <SearchInput placeholder="Tìm mã đơn…" />

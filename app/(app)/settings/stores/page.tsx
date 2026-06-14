@@ -17,7 +17,7 @@ export default async function StoresSettingsPage() {
 
   return (
     <>
-      <PageHeader title="Chi nhánh" description="Quản lý các chi nhánh của cửa hàng." />
+      <PageHeader title="Chi nhánh" description="Quản lý chi nhánh và tài khoản nhận tiền của từng nơi." />
       <StoreManager stores={stores ?? []} />
     </>
   );

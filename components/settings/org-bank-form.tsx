@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast";
 import { findBank } from "@/lib/payment/vn-banks";
 import { type BankInput, bankSchema } from "@/lib/validations/settings";
 
@@ -22,8 +23,7 @@ export interface OrgBankValues {
 }
 
 export function OrgBankForm({ values }: { values: OrgBankValues }) {
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const toast = useToast();
   // Bản sao cục bộ để xem trước (không dùng watch — giữ lint sạch).
   const [bankName, setBankName] = useState(values.bankName);
   const [account, setAccount] = useState(values.bankAccount);
@@ -38,11 +38,9 @@ export function OrgBankForm({ values }: { values: OrgBankValues }) {
   const bank = findBank(bankName);
 
   async function onSubmit(v: BankInput) {
-    setServerError(null);
-    setSaved(false);
     const res = await updateOrgBankAction(v);
-    if (res?.error) setServerError(res.error);
-    else setSaved(true);
+    if (res?.error) toast.error(res.error);
+    else toast.success("Đã lưu tài khoản nhận tiền");
   }
 
   return (
@@ -51,19 +49,9 @@ export function OrgBankForm({ values }: { values: OrgBankValues }) {
         <div className="grid gap-6 md:grid-cols-[1fr_280px]">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <p className="text-sm text-fg-muted">
-              Chọn ngân hàng và nhập số tài khoản để sinh mã QR chuyển khoản cho khách. Chi
-              nhánh có thể đặt tài khoản riêng (ghi đè) ở mục Chi nhánh.
+              Chọn ngân hàng và nhập số tài khoản để tạo mã QR thu tiền cho khách. Mỗi chi
+              nhánh có thể dùng tài khoản riêng (ghi đè) trong mục Chi nhánh.
             </p>
-            {serverError && (
-              <p role="alert" className="rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger">
-                {serverError}
-              </p>
-            )}
-            {saved && (
-              <p role="status" className="rounded-md border border-success/30 bg-success-bg px-3 py-2 text-sm text-success">
-                Đã lưu tài khoản nhận tiền.
-              </p>
-            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="bankName">Ngân hàng</Label>
