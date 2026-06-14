@@ -59,20 +59,28 @@ export function MoneyInput({
           đ
         </span>
       </div>
-      {suggestions.length > 0 && (
-        <div className="flex gap-1.5">
-          {suggestions.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => onChange(s)}
-              className="tnum flex-1 rounded-md border border-border bg-surface-2 px-2 py-1 text-xs transition-colors hover:border-primary"
-            >
-              {formatVnd(s)}
-            </button>
-          ))}
+      {/* Co giãn mượt để tránh layout nhảy khi gõ */}
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-200 ease-out",
+          suggestions.length ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="flex gap-1.5">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onChange(s)}
+                className="tnum flex-1 rounded-md border border-border bg-surface-2 px-2 py-1 text-xs transition-colors hover:border-primary"
+              >
+                {formatVnd(s)}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

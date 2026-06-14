@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getActiveOrgId } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
 import { saleSchema, transferOrderSchema } from "@/lib/validations/sale";
 
@@ -94,6 +95,34 @@ export async function cancelTransferOrderAction(orderId: string): Promise<{ erro
   revalidatePath("/inventory");
   revalidatePath("/orders");
   return {};
+}
+
+export interface QuickCustomerResult {
+  error?: string;
+  customer?: { id: string; name: string; phone: string | null };
+}
+
+// Tạo nhanh khách hàng ngay tại POS → trả về để chọn liền.
+export async function quickCreateCustomerAction(
+  name: string,
+  phone: string | null,
+): Promise<QuickCustomerResult> {
+  const trimmed = name.trim();
+  if (trimmed.length < 1) return { error: "Tên khách không hợp lệ" };
+
+  const orgId = await getActiveOrgId();
+  if (!orgId) return { error: "Chưa chọn cửa hàng" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("customers")
+    .insert({ org_id: orgId, name: trimmed, phone: phone?.trim() || null })
+    .select("id, name, phone")
+    .single();
+  if (error || !data) return { error: "Không tạo được khách hàng" };
+
+  revalidatePath("/customers");
+  return { customer: data as { id: string; name: string; phone: string | null } };
 }
 
 // Poll trạng thái trả tiền của đơn (fallback khi realtime trễ).

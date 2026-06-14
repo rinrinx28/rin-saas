@@ -2,13 +2,14 @@
 
 import {
   ArrowLeft,
-  CheckCircle2,
   Loader2,
   Minus,
   Plus,
   QrCode,
   Search,
   ShoppingCart,
+  Tag,
+  Ticket,
   Trash2,
 } from "lucide-react";
 import Image from "next/image";
@@ -21,25 +22,43 @@ import {
   createSaleAction,
   createTransferOrderAction,
 } from "@/app/(pos)/pos/actions";
+import { CustomerCombobox, type PosCustomer } from "@/components/pos/customer-combobox";
+import { SuccessCheck } from "@/components/pos/success-check";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/ui/money-input";
+import { useToast } from "@/components/ui/toast";
 import { type BankInfo, buildBankQrUrl, hasBank, transferMemo } from "@/lib/payment/bank-qr";
 import { createClient } from "@/lib/supabase/client";
 import { cn, formatVnd } from "@/lib/utils";
 
-export interface PosItem {
+export type { PosCustomer } from "@/components/pos/customer-combobox";
+
+export interface PosVariant {
   variantId: string;
-  product: string;
-  variant: string;
+  name: string;
   barcode: string | null;
   price: number;
   stock: number;
 }
+export interface PosProduct {
+  productId: string;
+  name: string;
+  variants: PosVariant[];
+}
 
 interface CartLine {
   variantId: string;
-  label: string;
+  productId: string;
+  productName: string;
+  variantName: string;
   price: number;
   qty: number;
 }
@@ -54,54 +73,47 @@ const METHOD_LABEL: Record<Method, string> = {
 };
 const METHODS = Object.keys(METHOD_LABEL) as Method[];
 
-interface CustomerOption {
-  id: string;
-  name: string;
-}
-
-const selectClass =
-  "flex h-9 w-full rounded-md border border-border bg-surface-2 px-3 text-sm text-fg transition-colors hover:bg-surface focus-visible:border-primary focus-visible:bg-surface";
-
 export function PosScreen({
   storeId,
-  items,
+  products,
   customers,
   bank,
 }: {
   storeId: string;
-  items: PosItem[];
-  customers: CustomerOption[];
+  products: PosProduct[];
+  customers: PosCustomer[];
   bank: BankInfo;
 }) {
-  const [stock, setStock] = useState<Record<string, number>>(
-    () => Object.fromEntries(items.map((i) => [i.variantId, i.stock])),
+  const toast = useToast();
+  const [stock, setStock] = useState<Record<string, number>>(() =>
+    Object.fromEntries(products.flatMap((p) => p.variants.map((v) => [v.variantId, v.stock]))),
   );
+  const [customerList, setCustomerList] = useState<PosCustomer[]>(customers);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [search, setSearch] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [promo, setPromo] = useState("");
   const [method, setMethod] = useState<Method>("cash");
   const [customerId, setCustomerId] = useState("");
   const [paidStr, setPaidStr] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ code: string; total: number; change: number; debt: number } | null>(null);
-  // Đơn chờ chuyển khoản: đã tạo đơn, đang chờ tiền về (webhook/realtime xác nhận).
   const [pending, setPending] = useState<{ orderId: string; code: string; total: number } | null>(null);
   const [pendingBusy, setPendingBusy] = useState(false);
+  // Chọn biến thể: product = sản phẩm đang chọn; lineVariantId != null = đổi biến thể cho dòng giỏ.
+  const [picker, setPicker] = useState<{ product: PosProduct; lineVariantId?: string } | null>(null);
+
+  const productById = useMemo(() => new Map(products.map((p) => [p.productId, p])), [products]);
 
   // Realtime: tồn kho thay đổi (chi nhánh này) → cập nhật số hiển thị.
-  // Bảng có RLS → phải set token cho socket realtime mới nhận được sự kiện.
   useEffect(() => {
     let active = true;
     const supabase = createClient();
     let ch: ReturnType<typeof supabase.channel> | null = null;
-
     void (async () => {
       const { data } = await supabase.auth.getSession();
       if (!active) return;
-      if (data.session?.access_token) {
-        supabase.realtime.setAuth(data.session.access_token);
-      }
+      if (data.session?.access_token) supabase.realtime.setAuth(data.session.access_token);
       ch = supabase
         .channel(`inv-${storeId}`)
         .on(
@@ -116,7 +128,6 @@ export function PosScreen({
         )
         .subscribe();
     })();
-
     return () => {
       active = false;
       if (ch) supabase.removeChannel(ch);
@@ -129,13 +140,11 @@ export function PosScreen({
     let active = true;
     const supabase = createClient();
     let ch: ReturnType<typeof supabase.channel> | null = null;
-
     const markPaid = () => {
       if (!active) return;
       setSuccess({ code: pending.code, total: pending.total, change: 0, debt: 0 });
       setPending(null);
     };
-
     void (async () => {
       const { data } = await supabase.auth.getSession();
       if (!active) return;
@@ -152,12 +161,10 @@ export function PosScreen({
         )
         .subscribe();
     })();
-
     const poll = setInterval(async () => {
       const r = await checkOrderPaidAction(pending.orderId);
       if (r && r.paid >= r.total) markPaid();
     }, 4000);
-
     return () => {
       active = false;
       clearInterval(poll);
@@ -167,14 +174,15 @@ export function PosScreen({
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(
-      (i) =>
-        i.product.toLowerCase().includes(q) ||
-        i.variant.toLowerCase().includes(q) ||
-        (i.barcode ?? "").toLowerCase().includes(q),
+    if (!q) return products;
+    return products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.variants.some(
+          (v) => v.name.toLowerCase().includes(q) || (v.barcode ?? "").toLowerCase().includes(q),
+        ),
     );
-  }, [items, search]);
+  }, [products, search]);
 
   const subtotal = cart.reduce((s, l) => s + l.price * l.qty, 0);
   const total = Math.max(subtotal - discount, 0);
@@ -185,16 +193,64 @@ export function PosScreen({
   const canCash = cart.length > 0 && (debt === 0 || customerId !== "");
   const canTransfer = cart.length > 0 && hasBank(bank);
 
-  function addToCart(item: PosItem) {
-    const have = stock[item.variantId] ?? 0;
+  function addVariant(line: { productId: string; productName: string }, v: PosVariant) {
+    const have = stock[v.variantId] ?? 0;
     if (have <= 0) return;
     setCart((c) => {
-      const ex = c.find((l) => l.variantId === item.variantId);
+      const ex = c.find((l) => l.variantId === v.variantId);
       if (ex) {
         if (ex.qty >= have) return c;
-        return c.map((l) => (l.variantId === item.variantId ? { ...l, qty: l.qty + 1 } : l));
+        return c.map((l) => (l.variantId === v.variantId ? { ...l, qty: l.qty + 1 } : l));
       }
-      return [...c, { variantId: item.variantId, label: `${item.product} — ${item.variant}`, price: item.price, qty: 1 }];
+      return [
+        ...c,
+        {
+          variantId: v.variantId,
+          productId: line.productId,
+          productName: line.productName,
+          variantName: v.name,
+          price: v.price,
+          qty: 1,
+        },
+      ];
+    });
+  }
+
+  function addProduct(p: PosProduct) {
+    const inStock = p.variants.filter((v) => (stock[v.variantId] ?? 0) > 0);
+    if (inStock.length === 0) return;
+    if (p.variants.length === 1) {
+      addVariant({ productId: p.productId, productName: p.name }, p.variants[0]);
+      return;
+    }
+    setPicker({ product: p });
+  }
+
+  function onPickVariant(v: PosVariant) {
+    if (!picker) return;
+    if (picker.lineVariantId) changeLineVariant(picker.lineVariantId, v);
+    else addVariant({ productId: picker.product.productId, productName: picker.product.name }, v);
+    setPicker(null);
+  }
+
+  function changeLineVariant(oldVariantId: string, v: PosVariant) {
+    if (oldVariantId === v.variantId) return;
+    const have = stock[v.variantId] ?? 0;
+    setCart((c) => {
+      const old = c.find((l) => l.variantId === oldVariantId);
+      if (!old) return c;
+      const existing = c.find((l) => l.variantId === v.variantId);
+      if (existing) {
+        const merged = Math.min(existing.qty + old.qty, have);
+        return c
+          .filter((l) => l.variantId !== oldVariantId)
+          .map((l) => (l.variantId === v.variantId ? { ...l, qty: merged } : l));
+      }
+      return c.map((l) =>
+        l.variantId === oldVariantId
+          ? { ...l, variantId: v.variantId, variantName: v.name, price: v.price, qty: Math.max(1, Math.min(old.qty, have)) }
+          : l,
+      );
     });
   }
 
@@ -211,16 +267,15 @@ export function PosScreen({
   function reset() {
     setCart([]);
     setDiscount(0);
+    setPromo("");
     setPaidStr("");
     setCustomerId("");
     setSuccess(null);
-    setError(null);
   }
 
   async function pay() {
     if (!canCash) return;
     setProcessing(true);
-    setError(null);
     const res = await createSaleAction({
       storeId,
       customerId: customerId || undefined,
@@ -231,11 +286,10 @@ export function PosScreen({
     });
     setProcessing(false);
     if (res.error) {
-      setError(res.error);
+      toast.error(res.error);
       return;
     }
     if (res.sale) {
-      // trừ tồn cục bộ (realtime cũng sẽ xác nhận)
       setStock((s) => {
         const next = { ...s };
         for (const l of cart) next[l.variantId] = (next[l.variantId] ?? 0) - l.qty;
@@ -245,11 +299,9 @@ export function PosScreen({
     }
   }
 
-  // Chuyển khoản: tạo đơn trước → sinh QR mang mã đơn → chờ tiền về (webhook/realtime).
   async function payByTransfer() {
     if (!canTransfer) return;
     setProcessing(true);
-    setError(null);
     const res = await createTransferOrderAction({
       storeId,
       customerId: customerId || undefined,
@@ -258,7 +310,7 @@ export function PosScreen({
     });
     setProcessing(false);
     if (res.error) {
-      setError(res.error);
+      toast.error(res.error);
       return;
     }
     if (res.sale) {
@@ -274,11 +326,10 @@ export function PosScreen({
   async function confirmPendingManual() {
     if (!pending) return;
     setPendingBusy(true);
-    setError(null);
     const res = await confirmTransferPaidAction(pending.orderId);
     setPendingBusy(false);
     if (res.error) {
-      setError(res.error);
+      toast.error(res.error);
       return;
     }
     setSuccess({ code: pending.code, total: pending.total, change: 0, debt: 0 });
@@ -288,11 +339,10 @@ export function PosScreen({
   async function cancelPending() {
     if (!pending) return;
     setPendingBusy(true);
-    setError(null);
     const res = await cancelTransferOrderAction(pending.orderId);
     setPendingBusy(false);
     if (res.error) {
-      setError(res.error);
+      toast.error(res.error);
       return;
     }
     setStock((s) => {
@@ -329,24 +379,30 @@ export function PosScreen({
             />
           </div>
           <div className="grid flex-1 grid-cols-2 content-start gap-3 overflow-y-auto p-4 pt-0 sm:grid-cols-3 xl:grid-cols-4">
-            {filtered.map((item) => {
-              const have = stock[item.variantId] ?? 0;
-              const out = have <= 0;
+            {filtered.map((p) => {
+              const totalStock = p.variants.reduce((s, v) => s + (stock[v.variantId] ?? 0), 0);
+              const out = totalStock <= 0;
+              const prices = p.variants.map((v) => v.price);
+              const min = Math.min(...prices);
+              const max = Math.max(...prices);
+              const priceLabel = min === max ? formatVnd(min) : `${formatVnd(min)} – ${formatVnd(max)}`;
               return (
                 <button
-                  key={item.variantId}
+                  key={p.productId}
                   type="button"
                   disabled={out}
-                  onClick={() => addToCart(item)}
-                  className={cn(
-                    "flex flex-col rounded-lg border border-border bg-surface p-3 text-left transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-50",
-                  )}
+                  onClick={() => addProduct(p)}
+                  className="flex flex-col rounded-lg border border-border bg-surface p-3 text-left transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <span className="line-clamp-2 text-sm font-medium">{item.product}</span>
-                  <span className="text-xs text-fg-muted">{item.variant}</span>
-                  <span className="tnum mt-2 font-semibold text-primary">{formatVnd(item.price)}</span>
+                  <span className="line-clamp-2 text-sm font-medium">{p.name}</span>
+                  {p.variants.length > 1 ? (
+                    <span className="text-xs text-fg-muted">{p.variants.length} biến thể</span>
+                  ) : (
+                    <span className="text-xs text-fg-muted">{p.variants[0].name}</span>
+                  )}
+                  <span className="tnum mt-2 font-semibold text-primary">{priceLabel}</span>
                   <span className={cn("tnum text-xs", out ? "text-danger" : "text-fg-subtle")}>
-                    Tồn: {have}
+                    Tồn: {totalStock}
                   </span>
                 </button>
               );
@@ -366,44 +422,57 @@ export function PosScreen({
               <p className="py-10 text-center text-sm text-fg-muted">Chưa có sản phẩm trong giỏ.</p>
             ) : (
               <ul className="space-y-2">
-                {cart.map((l) => (
-                  <li key={l.variantId} className="rounded-md border border-border p-2.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-sm font-medium">{l.label}</span>
+                {cart.map((l) => {
+                  const product = productById.get(l.productId);
+                  const multiVariant = (product?.variants.length ?? 0) > 1;
+                  return (
+                    <li key={l.variantId} className="rounded-md border border-border p-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-sm font-medium">{l.productName}</span>
+                        <button
+                          type="button"
+                          aria-label="Xóa"
+                          onClick={() => removeLine(l.variantId)}
+                          className="text-fg-subtle hover:text-danger"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </div>
+                      {/* Chip biến thể — bấm để đổi nếu sản phẩm có nhiều biến thể */}
                       <button
                         type="button"
-                        aria-label="Xóa"
-                        onClick={() => removeLine(l.variantId)}
-                        className="text-fg-subtle hover:text-danger"
+                        disabled={!multiVariant}
+                        onClick={() => product && setPicker({ product, lineVariantId: l.variantId })}
+                        className={cn(
+                          "mt-1 inline-flex items-center gap-1 rounded-full border border-border bg-surface-2 px-2 py-0.5 text-xs text-fg-muted",
+                          multiVariant && "transition-colors hover:border-primary hover:text-fg",
+                        )}
                       >
-                        <Trash2 className="size-4" />
+                        <Tag className="size-3" />
+                        {l.variantName}
+                        {multiVariant && <Plus className="size-3" />}
                       </button>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <Button variant="outline" size="icon" className="size-7" onClick={() => setQty(l.variantId, l.qty - 1)}>
-                          <Minus className="size-3.5" />
-                        </Button>
-                        <span className="tnum w-8 text-center text-sm">{l.qty}</span>
-                        <Button variant="outline" size="icon" className="size-7" onClick={() => setQty(l.variantId, l.qty + 1)}>
-                          <Plus className="size-3.5" />
-                        </Button>
+                      <div className="mt-2 flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <Button variant="outline" size="icon" className="size-7" onClick={() => setQty(l.variantId, l.qty - 1)}>
+                            <Minus className="size-3.5" />
+                          </Button>
+                          <span className="tnum w-8 text-center text-sm">{l.qty}</span>
+                          <Button variant="outline" size="icon" className="size-7" onClick={() => setQty(l.variantId, l.qty + 1)}>
+                            <Plus className="size-3.5" />
+                          </Button>
+                        </div>
+                        <span className="tnum text-sm font-medium">{formatVnd(l.price * l.qty)}</span>
                       </div>
-                      <span className="tnum text-sm font-medium">{formatVnd(l.price * l.qty)}</span>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
 
           {/* Thanh toán */}
           <div className="shrink-0 space-y-3 border-t border-border p-4">
-            {error && (
-              <p role="alert" className="rounded-md bg-danger-bg px-3 py-2 text-sm text-danger">
-                {error}
-              </p>
-            )}
             <div className="flex items-center justify-between text-sm">
               <span className="text-fg-muted">Tạm tính</span>
               <span className="tnum">{formatVnd(subtotal)}</span>
@@ -412,22 +481,39 @@ export function PosScreen({
               <span className="text-sm text-fg-muted">Chiết khấu</span>
               <MoneyInput id="pos-discount" suggest value={discount} onChange={setDiscount} />
             </div>
+
+            {/* Mã khuyến mãi (UI — tính năng sẽ bổ sung sau) */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Ticket className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-subtle" />
+                <Input
+                  placeholder="Mã khuyến mãi"
+                  className="h-9 pl-9"
+                  value={promo}
+                  onChange={(e) => setPromo(e.target.value)}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => toast.info("Tính năng khuyến mãi sắp ra mắt")}
+              >
+                Áp dụng
+              </Button>
+            </div>
+
             <div className="flex items-center justify-between border-t border-border pt-2">
               <span className="font-medium">Tổng cộng</span>
               <span className="tnum text-xl font-semibold text-primary">{formatVnd(total)}</span>
             </div>
 
-            <select
-              id="pos-customer"
-              className={selectClass}
+            <CustomerCombobox
+              customers={customerList}
               value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-            >
-              <option value="">Khách lẻ</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+              onChange={setCustomerId}
+              onCreated={(c) => setCustomerList((list) => [c, ...list])}
+            />
 
             <div className="grid grid-cols-2 gap-2">
               {METHODS.map((m) => (
@@ -446,7 +532,7 @@ export function PosScreen({
             {method === "transfer" &&
               (hasBank(bank) ? (
                 <p className="rounded-md border border-border bg-surface-2 px-3 py-2 text-xs text-fg-muted">
-                  Tạo mã QR mang mã đơn để khách quét. Tiền về sẽ tự xác nhận đơn.
+                  Khách quét mã QR để chuyển khoản. Hệ thống tự động xác nhận đơn ngay khi nhận được tiền.
                 </p>
               ) : (
                 <p className="rounded-md border border-warning/30 bg-warning-bg px-3 py-2 text-xs text-warning">
@@ -507,10 +593,40 @@ export function PosScreen({
         </aside>
       </div>
 
+      {/* Chọn biến thể */}
+      <Dialog open={picker !== null} onOpenChange={(o) => !o && setPicker(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{picker?.product.name}</DialogTitle>
+            <DialogDescription>Chọn biến thể để thêm vào giỏ.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {picker?.product.variants.map((v) => {
+              const have = stock[v.variantId] ?? 0;
+              const out = have <= 0;
+              return (
+                <button
+                  key={v.variantId}
+                  type="button"
+                  disabled={out}
+                  onClick={() => onPickVariant(v)}
+                  className="flex w-full items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-2.5 text-left transition-colors hover:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <span className="text-sm font-medium">{v.name}</span>
+                  <span className="tnum text-sm text-fg-muted">
+                    {formatVnd(v.price)} · Tồn {have}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Đơn chờ chuyển khoản */}
       {pending && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[oklch(22%_0.01_80/.5)] p-6">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-6 text-center shadow-lg">
+        <div className="fixed inset-0 z-50 grid place-items-center bg-[oklch(22%_0.01_80/.5)] p-6">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-6 text-center shadow-lg animate-[pop-in_0.3s_cubic-bezier(0.16,1,0.3,1)]">
             <p className="font-display text-lg font-semibold tracking-tight">Quét QR để thanh toán</p>
             <p className="tnum text-sm text-fg-muted">
               Đơn {pending.code} · {formatVnd(pending.total)}
@@ -552,18 +668,19 @@ export function PosScreen({
 
       {/* Thành công */}
       {success && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[oklch(22%_0.01_80/.5)] p-6">
-          <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-6 text-center shadow-lg">
-            <CheckCircle2 className="mx-auto size-12 text-success" />
-            <p className="mt-3 text-lg font-semibold">Thanh toán thành công</p>
+        <div className="fixed inset-0 z-50 grid place-items-center bg-[oklch(22%_0.01_80/.5)] p-6">
+          <div className="w-full max-w-sm overflow-hidden rounded-xl border border-border bg-surface p-6 text-center shadow-lg animate-[pop-in_0.3s_cubic-bezier(0.16,1,0.3,1)]">
+            <SuccessCheck />
+            <p className="mt-4 text-lg font-semibold">Thanh toán thành công</p>
             <p className="text-sm text-fg-muted">Đơn {success.code}</p>
-            <p className="tnum mt-3 text-2xl font-semibold">{formatVnd(success.total)}</p>
+            <p className="tnum mt-2 text-2xl font-semibold">{formatVnd(success.total)}</p>
             {success.change > 0 && (
               <p className="tnum text-sm text-fg-muted">Tiền thối: {formatVnd(success.change)}</p>
             )}
             {success.debt > 0 && (
               <p className="tnum text-sm text-danger">Ghi nợ: {formatVnd(success.debt)}</p>
             )}
+            <p className="mt-3 text-sm text-fg-muted">Cảm ơn quý khách, hẹn gặp lại! 💚</p>
             <Button className="mt-5 w-full" onClick={reset}>
               Bán đơn mới
             </Button>
