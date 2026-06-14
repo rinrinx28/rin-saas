@@ -26,5 +26,5 @@ export async function POST(request: Request) {
   const amount = Number(body.transferAmount ?? 0);
   const result = await confirmPayment(rawCode.toUpperCase(), amount);
 
-  return NextResponse.json({ ok: result.ok, reason: result.reason });
+  return NextResponse.json({ ok: result.ok, reason: result.reason, success: true });
 }

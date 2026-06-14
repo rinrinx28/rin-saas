@@ -38,7 +38,7 @@ export interface Usage {
 export interface BankInfo {
   name: string;
   account: string;
-  bin: string;
+  holder: string;
 }
 
 interface PaymentState {
@@ -214,9 +214,18 @@ function PaymentDialog({
     else onPaid();
   }
 
+  // Nội dung chuyển khoản (chứa memo để webhook đối soát) — dùng chung cho QR & hiển thị.
+  const desc = payment ? `Thanh toan goi ${payment.memo}` : "";
+  // QR của SePay — sinh đúng cho tài khoản đã kết nối SePay.
   const qrUrl =
-    payment && bank.bin && bank.account
-      ? `https://img.vietqr.io/image/${bank.bin}-${bank.account}-compact2.png?amount=${payment.amount}&addInfo=${encodeURIComponent(payment.memo)}`
+    payment && bank.account
+      ? `https://qr.sepay.vn/img?${new URLSearchParams({
+          bank: bank.name,
+          acc: bank.account,
+          amount: String(payment.amount),
+          des: desc,
+          template: "compact",
+        }).toString()}`
       : null;
 
   return (
@@ -239,11 +248,12 @@ function PaymentDialog({
             <div className="space-y-1.5 rounded-md border border-border bg-surface-2 p-3 text-sm">
               <Row label="Ngân hàng" value={bank.name || "(cấu hình NEXT_PUBLIC_BANK_*)"} />
               <Row label="Số tài khoản" value={bank.account || "—"} mono />
+              {bank.holder && <Row label="Chủ tài khoản" value={bank.holder} />}
               <Row label="Số tiền" value={formatVnd(payment.amount)} mono />
-              <Row label="Nội dung CK" value={payment.memo} mono highlight />
+              <Row label="Nội dung CK" value={desc} highlight />
             </div>
             <p className="text-xs text-fg-subtle">
-              ⚠️ Nhập đúng nội dung “{payment.memo}” để hệ thống tự đối soát.
+              ⚠️ Chuyển khoản đúng nội dung “{desc}” để hệ thống tự đối soát.
             </p>
             {error && <p className="text-sm text-danger">{error}</p>}
           </div>

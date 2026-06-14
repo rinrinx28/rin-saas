@@ -32,7 +32,7 @@ export default async function BillingPage() {
         bank={{
           name: process.env.NEXT_PUBLIC_BANK_NAME ?? "",
           account: process.env.NEXT_PUBLIC_BANK_ACCOUNT ?? "",
-          bin: process.env.NEXT_PUBLIC_BANK_BIN ?? "",
+          holder: process.env.NEXT_PUBLIC_BANK_HOLDER ?? "",
         }}
         simulateEnabled={process.env.NEXT_PUBLIC_PAYMENT_SIMULATE === "true"}
         expiresAt={org?.plan_expires_at ?? null}
