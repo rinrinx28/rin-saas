@@ -2,25 +2,30 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { signUpAction } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { type RegisterInput, registerSchema } from "@/lib/validations/auth";
 
 export default function RegisterPage() {
-  const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({ resolver: zodResolver(registerSchema) });
 
-  async function onSubmit() {
-    // TODO(P1 backend): Supabase signUp → gửi tới onboarding tạo org đầu tiên.
-    await new Promise((r) => setTimeout(r, 600));
-    router.push("/onboarding");
+  async function onSubmit(values: RegisterInput) {
+    setServerError(null);
+    setNotice(null);
+    const res = await signUpAction(values);
+    if (res?.error) setServerError(res.error);
+    else if (res?.notice) setNotice(res.notice);
+    // Thành công (không cần xác nhận) → server action redirect sang /onboarding
   }
 
   return (
@@ -35,6 +40,22 @@ export default function RegisterPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        {serverError && (
+          <p
+            role="alert"
+            className="rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger"
+          >
+            {serverError}
+          </p>
+        )}
+        {notice && (
+          <p
+            role="status"
+            className="rounded-md border border-success/30 bg-success-bg px-3 py-2 text-sm text-success"
+          >
+            {notice}
+          </p>
+        )}
         <Field label="Họ và tên" htmlFor="name" error={errors.name?.message}>
           <Input
             id="name"

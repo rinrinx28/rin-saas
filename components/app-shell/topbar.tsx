@@ -3,15 +3,44 @@ import { ContextSwitcher } from "@/components/app-shell/context-switcher";
 import { UserMenu } from "@/components/app-shell/user-menu";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { mockOrgs, mockStores } from "@/lib/mock-data";
+import { ACTIVE_ORG_COOKIE, ACTIVE_STORE_COOKIE } from "@/lib/constants";
 
-export function Topbar() {
+interface Option {
+  id: string;
+  name: string;
+}
+
+interface TopbarProps {
+  orgs: Option[];
+  stores: Option[];
+  activeOrgId: string;
+  activeStoreId?: string;
+  userName: string;
+  userEmail: string;
+}
+
+export function Topbar({
+  orgs,
+  stores,
+  activeOrgId,
+  activeStoreId,
+  userName,
+  userEmail,
+}: TopbarProps) {
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border bg-surface/80 px-4 backdrop-blur sm:px-6">
-      <ContextSwitcher label="Cửa hàng" options={mockOrgs} />
+      <ContextSwitcher
+        label="Cửa hàng"
+        options={orgs}
+        activeId={activeOrgId}
+        cookieName={ACTIVE_ORG_COOKIE}
+        alsoClear={[ACTIVE_STORE_COOKIE]}
+      />
       <ContextSwitcher
         label="Chi nhánh"
-        options={mockStores}
+        options={stores}
+        activeId={activeStoreId}
+        cookieName={ACTIVE_STORE_COOKIE}
         className="hidden sm:flex"
       />
 
@@ -22,7 +51,7 @@ export function Topbar() {
 
       <div className="ml-auto flex items-center gap-1.5 md:ml-2">
         <ThemeToggle />
-        <UserMenu />
+        <UserMenu name={userName} email={userEmail} />
       </div>
     </header>
   );

@@ -3,27 +3,28 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { signInAction } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { type LoginInput, loginSchema } from "@/lib/validations/auth";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
 
-  async function onSubmit() {
-    // TODO(P1 backend): gọi Supabase signInWithPassword + xử lý lỗi.
-    await new Promise((r) => setTimeout(r, 600));
-    router.push("/dashboard");
+  async function onSubmit(values: LoginInput) {
+    setServerError(null);
+    const res = await signInAction(values);
+    if (res?.error) setServerError(res.error);
+    // Thành công → server action redirect sang /dashboard
   }
 
   return (
@@ -38,6 +39,14 @@ export default function LoginPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        {serverError && (
+          <p
+            role="alert"
+            className="rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger"
+          >
+            {serverError}
+          </p>
+        )}
         <Field label="Email" htmlFor="email" error={errors.email?.message}>
           <Input
             id="email"

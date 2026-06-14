@@ -2,8 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Boxes } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { createOrganizationAction } from "@/app/onboarding/actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,17 +18,18 @@ import { Input } from "@/components/ui/input";
 import { type OnboardingInput, onboardingSchema } from "@/lib/validations/auth";
 
 export default function OnboardingPage() {
-  const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<OnboardingInput>({ resolver: zodResolver(onboardingSchema) });
 
-  async function onSubmit() {
-    // TODO(P1 backend): tạo organization + membership owner + store đầu tiên (Server Action).
-    await new Promise((r) => setTimeout(r, 600));
-    router.push("/dashboard");
+  async function onSubmit(values: OnboardingInput) {
+    setServerError(null);
+    const res = await createOrganizationAction(values);
+    if (res?.error) setServerError(res.error);
+    // Thành công → server action redirect sang /dashboard
   }
 
   return (
@@ -49,6 +51,14 @@ export default function OnboardingPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+              {serverError && (
+                <p
+                  role="alert"
+                  className="rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger"
+                >
+                  {serverError}
+                </p>
+              )}
               <Field
                 label="Tên cửa hàng"
                 htmlFor="orgName"

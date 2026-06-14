@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
 import { SIDEBAR_COOKIE } from "@/lib/constants";
+import { setCookie } from "@/lib/cookies";
 import { navGroups } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
@@ -28,11 +29,8 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
   function toggle() {
-    setCollapsed((v) => {
-      const next = !v;
-      document.cookie = `${SIDEBAR_COOKIE}=${next ? "1" : "0"}; path=/; max-age=31536000; samesite=lax`;
-      return next;
-    });
+    setCookie(SIDEBAR_COOKIE, collapsed ? "0" : "1");
+    setCollapsed((v) => !v);
   }
 
   const hrefs = navGroups.flatMap((g) => g.items.map((i) => i.href));
