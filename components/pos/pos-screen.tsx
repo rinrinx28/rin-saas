@@ -660,7 +660,7 @@ export function PosScreen({
               </p>
             </div>
             <p className="mt-4 inline-flex items-center gap-2 text-sm text-fg-muted">
-              <Loader2 className="size-4 animate-spin" /> Đang chờ tiền về…
+              <Loader2 className="size-4 animate-spin" /> Đang chờ xác nhận thanh toán…
             </p>
             <div className="mt-4 flex gap-2">
               <Button variant="ghost" className="flex-1" disabled={pendingBusy} onClick={cancelPending}>
