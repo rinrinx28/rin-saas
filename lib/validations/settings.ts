@@ -11,7 +11,7 @@ export const bankSchema = z.object({
     .string()
     .trim()
     .max(30)
-    .regex(/^\d*$/, "Số tài khoản chỉ gồm chữ số")
+    .regex(/^[A-Za-z0-9]*$/, "Số tài khoản chỉ gồm chữ và số")
     .optional(),
   bankHolder: z.string().trim().max(100).optional(),
 });

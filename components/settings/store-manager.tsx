@@ -195,7 +195,7 @@ function StoreFormDialog({
               />
             </div>
             <Field label="Số tài khoản" htmlFor="bankAccount" error={errors.bankAccount?.message}>
-              <Input id="bankAccount" inputMode="numeric" placeholder="0123456789" {...register("bankAccount")} />
+              <Input id="bankAccount" placeholder="0123456789" {...register("bankAccount")} />
             </Field>
             <Field label="Chủ tài khoản" htmlFor="bankHolder" error={errors.bankHolder?.message}>
               <Input id="bankHolder" placeholder="NGUYEN VAN A" {...register("bankHolder")} />

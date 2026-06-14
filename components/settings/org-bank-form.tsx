@@ -79,7 +79,6 @@ export function OrgBankForm({ values }: { values: OrgBankValues }) {
             <Field label="Số tài khoản" htmlFor="bankAccount" error={errors.bankAccount?.message}>
               <Input
                 id="bankAccount"
-                inputMode="numeric"
                 placeholder="0123456789"
                 {...register("bankAccount", { onChange: (e) => setAccount(e.target.value) })}
               />
