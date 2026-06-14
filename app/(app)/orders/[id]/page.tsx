@@ -12,6 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EInvoicePanel, type EInvoiceRecord } from "@/components/orders/einvoice-panel";
+import { getActiveOrgId, isManager } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
 import { formatVnd } from "@/lib/utils";
 
@@ -51,6 +53,17 @@ export default async function OrderDetailPage({
     .single();
   if (!data) notFound();
   const order = data as unknown as OrderDetail;
+
+  const { data: ei } = await supabase
+    .from("einvoices")
+    .select("status, series, invoice_no, tax_authority_code, lookup_url, issued_at")
+    .eq("order_id", id)
+    .eq("status", "issued")
+    .maybeSingle();
+  const einvoice = (ei as EInvoiceRecord | null) ?? null;
+
+  const orgId = await getActiveOrgId();
+  const canManage = orgId ? await isManager(orgId) : false;
 
   const methodLabel = order.payments[0]
     ? order.payments[0].method === "cash"
@@ -132,6 +145,7 @@ export default async function OrderDetailPage({
               <Row label="Đã trả" value={<span className="tnum">{formatVnd(order.paid)}</span>} />
             </CardContent>
           </Card>
+          <EInvoicePanel orderId={order.id} einvoice={einvoice} canManage={canManage} />
         </div>
       </div>
     </>

@@ -28,7 +28,9 @@ thiết kế & quy ước của dự án. Mỗi quyết định đã duyệt đ�
 | 0005 | [Bản đồ tính năng & route (IA)](0005-feature-route-map.md) | Accepted   |
 | 0006 | [Hoạt ảnh với GSAP](0006-animation-gsap.md)          | Accepted   |
 | 0007 | [Lưu trữ ảnh (Supabase Storage)](0007-image-storage.md) | Accepted   |
+| 0008 | [Hóa đơn điện tử (HĐĐT)](0008-hoa-don-dien-tu.md)     | Accepted   |
 
 ## Sắp tới (đang chờ brainstorm + duyệt)
 
 - (Bám lộ trình Phase 1→4 trong 0005; ADR mới phát sinh theo tính năng cụ thể.)
+- In bill máy nhiệt ESC-POS (K57/K80) — cần print agent local.

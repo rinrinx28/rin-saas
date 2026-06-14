@@ -1,0 +1,97 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { getEInvoiceProvider, type EInvoiceOrder } from "@/lib/einvoice";
+import { getActiveOrgId, isManager } from "@/lib/org";
+import { createClient } from "@/lib/supabase/server";
+
+export interface ActionResult {
+  error?: string;
+}
+
+interface OrderForEInvoice {
+  id: string;
+  code: string;
+  subtotal: number;
+  discount: number;
+  total: number;
+  created_at: string;
+  stores: { name: string; address: string | null } | null;
+  customers: { name: string; phone: string | null } | null;
+  order_items: {
+    qty: number;
+    price: number;
+    total: number;
+    product_variants: { name: string; products: { name: string } | null } | null;
+  }[];
+}
+
+// Phát hành HĐĐT cho một đơn: gọi provider → ghi nhận kết quả qua RPC.
+export async function issueEInvoiceAction(orderId: string): Promise<ActionResult> {
+  const orgId = await getActiveOrgId();
+  if (!orgId) return { error: "Chưa chọn cửa hàng" };
+  if (!(await isManager(orgId))) return { error: "Bạn không có quyền phát hành HĐĐT" };
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("orders")
+    .select(
+      "id, code, subtotal, discount, total, created_at, stores(name, address), customers(name, phone), order_items(qty, price, total, product_variants(name, products(name)))",
+    )
+    .eq("id", orderId)
+    .single();
+  if (!data) return { error: "Không tìm thấy đơn hàng" };
+  const order = data as unknown as OrderForEInvoice;
+
+  const payload: EInvoiceOrder = {
+    id: order.id,
+    code: order.code,
+    subtotal: order.subtotal,
+    discount: order.discount,
+    total: order.total,
+    createdAt: order.created_at,
+    storeName: order.stores?.name ?? "",
+    storeAddress: order.stores?.address ?? null,
+    customerName: order.customers?.name ?? null,
+    customerPhone: order.customers?.phone ?? null,
+    items: order.order_items.map((it) => ({
+      name: `${it.product_variants?.products?.name ?? "?"} — ${it.product_variants?.name ?? ""}`,
+      qty: it.qty,
+      price: it.price,
+      total: it.total,
+    })),
+  };
+
+  const provider = getEInvoiceProvider();
+  let result;
+  try {
+    result = await provider.issue(payload);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Lỗi không xác định";
+    result = { status: "failed" as const, error: message };
+  }
+
+  const { error: rpcError } = await supabase.rpc("issue_einvoice", {
+    p_order: orderId,
+    p_provider: provider.key,
+    p_status: result.status,
+    p_series: result.series ?? null,
+    p_no: result.invoiceNo ?? null,
+    p_cqt: result.taxAuthorityCode ?? null,
+    p_lookup: result.lookupUrl ?? null,
+    p_pdf: result.pdfUrl ?? null,
+    p_error: result.error ?? null,
+    p_payload: result.payload ?? null,
+  });
+  if (rpcError) {
+    if (rpcError.message?.includes("quyền")) return { error: "Bạn không có quyền phát hành HĐĐT" };
+    return { error: "Không ghi nhận được HĐĐT" };
+  }
+
+  if (result.status === "failed") {
+    return { error: result.error ?? "Nhà cung cấp từ chối phát hành" };
+  }
+
+  revalidatePath(`/orders/${orderId}`);
+  return {};
+}
