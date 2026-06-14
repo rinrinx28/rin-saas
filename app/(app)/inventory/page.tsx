@@ -1,7 +1,9 @@
-import { Boxes } from "lucide-react";
+import { Boxes, ClipboardCheck } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -60,6 +62,13 @@ export default async function InventoryPage() {
       <PageHeader
         title="Tồn kho"
         description="Số lượng tồn theo chi nhánh đang chọn."
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/inventory/stocktake">
+              <ClipboardCheck /> Kiểm kho
+            </Link>
+          </Button>
+        }
       />
       <Card>
         {rows.length === 0 ? (
