@@ -21,7 +21,7 @@ export default function SuccessPreviewPage() {
         <p className="mt-4 text-lg font-semibold">Thanh toán thành công</p>
         <p className="text-sm text-fg-muted">Đơn HD260615-103045</p>
         <p className="tnum mt-2 text-2xl font-semibold">{formatVnd(250000)}</p>
-        <p className="mt-3 text-sm text-fg-muted">Cảm ơn quý khách, hẹn gặp lại! 💚</p>
+        <p className="mt-3 text-sm text-fg-muted">Cảm ơn quý khách, hẹn gặp lại!</p>
         <Button className="mt-5 w-full" onClick={() => setRun((n) => n + 1)}>
           <RotateCcw className="size-4" /> Lặp lại
         </Button>

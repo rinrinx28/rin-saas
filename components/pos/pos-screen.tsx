@@ -680,7 +680,7 @@ export function PosScreen({
             {success.debt > 0 && (
               <p className="tnum text-sm text-danger">Ghi nợ: {formatVnd(success.debt)}</p>
             )}
-            <p className="mt-3 text-sm text-fg-muted">Cảm ơn quý khách, hẹn gặp lại! 💚</p>
+            <p className="mt-3 text-sm text-fg-muted">Cảm ơn quý khách, hẹn gặp lại!</p>
             <Button className="mt-5 w-full" onClick={reset}>
               Bán đơn mới
             </Button>
