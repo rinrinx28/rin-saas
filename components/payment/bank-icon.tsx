@@ -31,15 +31,24 @@ export function BankIcon({
 }) {
   if (BANK_ICON_CODES.has(bank.code)) {
     const px = PX[size];
+    // Ô nền trắng đồng nhất để logo (trong suốt hoặc nền trắng) đều rõ & cùng kiểu.
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={`/banks/${bank.code}.svg`}
-        alt={bank.shortName}
-        width={px}
-        height={px}
-        className={cn("shrink-0 rounded-md object-contain", SIZES[size], className)}
-      />
+      <span
+        className={cn(
+          "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white",
+          SIZES[size],
+          className,
+        )}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`/banks/${bank.code}.svg`}
+          alt={bank.shortName}
+          width={px}
+          height={px}
+          className="size-full object-contain p-0.5"
+        />
+      </span>
     );
   }
 
