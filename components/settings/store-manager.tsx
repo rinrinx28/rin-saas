@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BankIcon } from "@/components/payment/bank-icon";
 import { BankSelect } from "@/components/payment/bank-select";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -82,10 +83,7 @@ export function StoreManager({ stores }: { stores: StoreRow[] }) {
                 <TableCell className="text-fg-muted">
                   {s.bank_account ? (
                     <span className="inline-flex items-center gap-1.5">
-                      {findBank(s.bank_name)?.logo && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={findBank(s.bank_name)!.logo} alt="" width={20} height={20} className="size-5 rounded object-contain" />
-                      )}
+                      {findBank(s.bank_name) && <BankIcon bank={findBank(s.bank_name)!} size="sm" />}
                       <span className="tnum">{s.bank_account}</span>
                       {s.bank_name ? <span className="text-xs">· {s.bank_name}</span> : null}
                     </span>

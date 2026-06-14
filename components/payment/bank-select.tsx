@@ -2,6 +2,7 @@
 
 import { Check, ChevronsUpDown, Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BankIcon } from "@/components/payment/bank-icon";
 import { findBank, VN_BANKS } from "@/lib/payment/vn-banks";
 import { cn } from "@/lib/utils";
 
@@ -56,8 +57,7 @@ export function BankSelect({
       >
         {selected ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={selected.logo} alt="" width={22} height={22} className="size-5 shrink-0 rounded object-contain" />
+            <BankIcon bank={selected} size="sm" />
             <span className="truncate font-medium">{selected.shortName}</span>
           </>
         ) : (
@@ -103,8 +103,7 @@ export function BankSelect({
                       b.shortName === value && "bg-surface-2",
                     )}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={b.logo} alt="" width={28} height={28} className="size-7 shrink-0 rounded object-contain" />
+                    <BankIcon bank={b} size="md" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">{b.shortName}</span>
                       <span className="block truncate text-xs text-fg-muted">{b.name}</span>

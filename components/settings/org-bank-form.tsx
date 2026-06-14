@@ -5,6 +5,7 @@ import { Landmark } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { updateOrgBankAction } from "@/app/(app)/settings/actions";
+import { BankIcon } from "@/components/payment/bank-icon";
 import { BankSelect } from "@/components/payment/bank-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -114,8 +115,7 @@ function BankPreview({
       <p className="text-xs font-medium uppercase tracking-wide text-fg-subtle">Xem trước</p>
       {bank ? (
         <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={bank.logo} alt={bank.shortName} width={44} height={44} className="size-11 rounded-lg border border-border bg-surface object-contain p-1" />
+          <BankIcon bank={bank} size="lg" />
           <div className="min-w-0">
             <p className="truncate font-medium">{bank.shortName}</p>
             <p className="truncate text-xs text-fg-muted">{bank.name}</p>
