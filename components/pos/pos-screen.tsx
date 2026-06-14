@@ -11,10 +11,11 @@ import {
   Tag,
   Ticket,
   Trash2,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   cancelTransferOrderAction,
   checkOrderPaidAction,
@@ -264,14 +265,21 @@ export function PosScreen({
     setCart((c) => c.filter((l) => l.variantId !== variantId));
   }
 
-  function reset() {
+  const reset = useCallback(() => {
     setCart([]);
     setDiscount(0);
     setPromo("");
     setPaidStr("");
     setCustomerId("");
     setSuccess(null);
-  }
+  }, []);
+
+  // Dialog thành công tự tắt sau 3s (vẫn có nút đóng tay).
+  useEffect(() => {
+    if (!success) return;
+    const t = setTimeout(reset, 3000);
+    return () => clearTimeout(t);
+  }, [success, reset]);
 
   async function pay() {
     if (!canCash) return;
@@ -669,7 +677,15 @@ export function PosScreen({
       {/* Thành công */}
       {success && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-[oklch(22%_0.01_80/.5)] p-6">
-          <div className="w-full max-w-sm overflow-hidden rounded-xl border border-border bg-surface p-6 text-center shadow-lg animate-[pop-in_0.3s_cubic-bezier(0.16,1,0.3,1)]">
+          <div className="relative w-full max-w-sm overflow-hidden rounded-xl border border-border bg-surface p-6 text-center shadow-lg animate-[pop-in_0.3s_cubic-bezier(0.16,1,0.3,1)]">
+            <button
+              type="button"
+              aria-label="Đóng"
+              onClick={reset}
+              className="absolute right-3 top-3 rounded-md p-1 text-fg-subtle transition-colors hover:bg-surface-2 hover:text-fg"
+            >
+              <X className="size-4" />
+            </button>
             <SuccessCheck />
             <p className="mt-4 text-lg font-semibold">Thanh toán thành công</p>
             <p className="text-sm text-fg-muted">Đơn {success.code}</p>
@@ -681,9 +697,6 @@ export function PosScreen({
               <p className="tnum text-sm text-danger">Ghi nợ: {formatVnd(success.debt)}</p>
             )}
             <p className="mt-3 text-sm text-fg-muted">Cảm ơn quý khách, hẹn gặp lại!</p>
-            <Button className="mt-5 w-full" onClick={reset}>
-              Bán đơn mới
-            </Button>
           </div>
         </div>
       )}
