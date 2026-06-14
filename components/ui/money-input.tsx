@@ -39,11 +39,12 @@ export function MoneyInput({
     onChange(digits ? Number(digits) : 0);
   }
 
-  const suggestions =
-    suggest && value > 0 && value < SUGGEST_MAX ? SUGGEST_FACTORS.map((f) => value * f) : [];
+  const showSuggest = suggest && value > 0 && value < SUGGEST_MAX;
+  // Giữ chip trong DOM khi value>0 để cả lúc đóng cũng co lại mượt (không nhảy).
+  const chips = suggest && value > 0 ? SUGGEST_FACTORS.map((f) => value * f) : [];
 
   return (
-    <div className="space-y-2">
+    <div>
       <div className="relative">
         <Input
           id={id}
@@ -59,16 +60,16 @@ export function MoneyInput({
           đ
         </span>
       </div>
-      {/* Co giãn mượt để tránh layout nhảy khi gõ */}
+      {/* Co giãn mượt cả khi hiện lẫn ẩn (ease-in-out) để tránh layout nhảy */}
       <div
         className={cn(
-          "grid transition-[grid-template-rows] duration-200 ease-out",
-          suggestions.length ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+          "grid transition-[grid-template-rows] duration-300 ease-in-out",
+          showSuggest ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
       >
         <div className="overflow-hidden">
-          <div className="flex gap-1.5">
-            {suggestions.map((s) => (
+          <div className="flex gap-1.5 pt-2">
+            {chips.map((s) => (
               <button
                 key={s}
                 type="button"
