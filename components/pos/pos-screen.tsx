@@ -3,8 +3,10 @@
 import {
   ArrowLeft,
   CheckCircle2,
+  Loader2,
   Minus,
   Plus,
+  QrCode,
   Search,
   ShoppingCart,
   Trash2,
@@ -12,7 +14,13 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { createSaleAction } from "@/app/(pos)/pos/actions";
+import {
+  cancelTransferOrderAction,
+  checkOrderPaidAction,
+  confirmTransferPaidAction,
+  createSaleAction,
+  createTransferOrderAction,
+} from "@/app/(pos)/pos/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type BankInfo, buildBankQrUrl, hasBank, transferMemo } from "@/lib/payment/bank-qr";
@@ -76,6 +84,9 @@ export function PosScreen({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ code: string; total: number; change: number; debt: number } | null>(null);
+  // Đơn chờ chuyển khoản: đã tạo đơn, đang chờ tiền về (webhook/realtime xác nhận).
+  const [pending, setPending] = useState<{ orderId: string; code: string; total: number } | null>(null);
+  const [pendingBusy, setPendingBusy] = useState(false);
 
   // Realtime: tồn kho thay đổi (chi nhánh này) → cập nhật số hiển thị.
   // Bảng có RLS → phải set token cho socket realtime mới nhận được sự kiện.
@@ -111,6 +122,48 @@ export function PosScreen({
     };
   }, [storeId]);
 
+  // Đơn chờ chuyển khoản: realtime (orders) + poll fallback → tiền về thì báo thành công.
+  useEffect(() => {
+    if (!pending) return;
+    let active = true;
+    const supabase = createClient();
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+
+    const markPaid = () => {
+      if (!active) return;
+      setSuccess({ code: pending.code, total: pending.total, change: 0, debt: 0 });
+      setPending(null);
+    };
+
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!active) return;
+      if (data.session?.access_token) supabase.realtime.setAuth(data.session.access_token);
+      ch = supabase
+        .channel(`order-${pending.orderId}`)
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${pending.orderId}` },
+          (payload) => {
+            const row = payload.new as { paid?: number };
+            if ((row?.paid ?? 0) >= pending.total) markPaid();
+          },
+        )
+        .subscribe();
+    })();
+
+    const poll = setInterval(async () => {
+      const r = await checkOrderPaidAction(pending.orderId);
+      if (r && r.paid >= r.total) markPaid();
+    }, 4000);
+
+    return () => {
+      active = false;
+      clearInterval(poll);
+      if (ch) supabase.removeChannel(ch);
+    };
+  }, [pending]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return items;
@@ -128,7 +181,8 @@ export function PosScreen({
   const paidToOrder = Math.min(paidEntered, total);
   const debt = total - paidToOrder;
   const change = Math.max(paidEntered - total, 0);
-  const canPay = cart.length > 0 && (debt === 0 || customerId !== "");
+  const canCash = cart.length > 0 && (debt === 0 || customerId !== "");
+  const canTransfer = cart.length > 0 && hasBank(bank);
 
   function addToCart(item: PosItem) {
     const have = stock[item.variantId] ?? 0;
@@ -163,7 +217,7 @@ export function PosScreen({
   }
 
   async function pay() {
-    if (!canPay) return;
+    if (!canCash) return;
     setProcessing(true);
     setError(null);
     const res = await createSaleAction({
@@ -188,6 +242,64 @@ export function PosScreen({
       });
       setSuccess({ code: res.sale.code, total: res.sale.total, change, debt });
     }
+  }
+
+  // Chuyển khoản: tạo đơn trước → sinh QR mang mã đơn → chờ tiền về (webhook/realtime).
+  async function payByTransfer() {
+    if (!canTransfer) return;
+    setProcessing(true);
+    setError(null);
+    const res = await createTransferOrderAction({
+      storeId,
+      customerId: customerId || undefined,
+      discount,
+      items: cart.map((l) => ({ variantId: l.variantId, qty: l.qty, price: l.price })),
+    });
+    setProcessing(false);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    if (res.sale) {
+      setStock((s) => {
+        const next = { ...s };
+        for (const l of cart) next[l.variantId] = (next[l.variantId] ?? 0) - l.qty;
+        return next;
+      });
+      setPending({ orderId: res.sale.id, code: res.sale.code, total: res.sale.total });
+    }
+  }
+
+  async function confirmPendingManual() {
+    if (!pending) return;
+    setPendingBusy(true);
+    setError(null);
+    const res = await confirmTransferPaidAction(pending.orderId);
+    setPendingBusy(false);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    setSuccess({ code: pending.code, total: pending.total, change: 0, debt: 0 });
+    setPending(null);
+  }
+
+  async function cancelPending() {
+    if (!pending) return;
+    setPendingBusy(true);
+    setError(null);
+    const res = await cancelTransferOrderAction(pending.orderId);
+    setPendingBusy(false);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    setStock((s) => {
+      const next = { ...s };
+      for (const l of cart) next[l.variantId] = (next[l.variantId] ?? 0) + l.qty;
+      return next;
+    });
+    setPending(null);
   }
 
   return (
@@ -339,20 +451,9 @@ export function PosScreen({
 
             {method === "transfer" &&
               (hasBank(bank) ? (
-                <div className="flex flex-col items-center gap-2 rounded-md border border-border bg-surface-2 p-3">
-                  <Image
-                    src={buildBankQrUrl(bank, total, transferMemo("BAN HANG"))!}
-                    alt="QR chuyển khoản"
-                    width={180}
-                    height={180}
-                    className="rounded-md"
-                    unoptimized
-                  />
-                  <p className="text-center text-xs text-fg-muted">
-                    {bank.name} · <span className="tnum">{bank.account}</span>
-                    {bank.holder ? ` · ${bank.holder}` : ""}
-                  </p>
-                </div>
+                <p className="rounded-md border border-border bg-surface-2 px-3 py-2 text-xs text-fg-muted">
+                  Tạo mã QR mang mã đơn để khách quét. Tiền về sẽ tự xác nhận đơn.
+                </p>
               ) : (
                 <p className="rounded-md border border-warning/30 bg-warning-bg px-3 py-2 text-xs text-warning">
                   Chưa cấu hình tài khoản nhận tiền.{" "}
@@ -369,40 +470,93 @@ export function PosScreen({
               </p>
             )}
 
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span className="text-fg-muted">Tiền khách trả</span>
-              <Input
-                id="pos-paid"
-                type="number"
-                min={0}
-                placeholder={String(total)}
-                value={paidStr}
-                onChange={(e) => setPaidStr(e.target.value)}
-                className="tnum h-8 w-32 text-right"
-              />
-            </div>
-            {change > 0 && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-fg-muted">Tiền thối</span>
-                <span className="tnum font-medium">{formatVnd(change)}</span>
-              </div>
-            )}
-            {debt > 0 && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-danger">Ghi nợ</span>
-                <span className="tnum font-medium text-danger">{formatVnd(debt)}</span>
-              </div>
-            )}
-            {debt > 0 && customerId === "" && (
-              <p className="text-xs text-warning">Chọn khách hàng để ghi nợ phần còn thiếu.</p>
+            {method !== "transfer" && (
+              <>
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="text-fg-muted">Tiền khách trả</span>
+                  <Input
+                    id="pos-paid"
+                    type="number"
+                    min={0}
+                    placeholder={String(total)}
+                    value={paidStr}
+                    onChange={(e) => setPaidStr(e.target.value)}
+                    className="tnum h-8 w-32 text-right"
+                  />
+                </div>
+                {change > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-fg-muted">Tiền thối</span>
+                    <span className="tnum font-medium">{formatVnd(change)}</span>
+                  </div>
+                )}
+                {debt > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-danger">Ghi nợ</span>
+                    <span className="tnum font-medium text-danger">{formatVnd(debt)}</span>
+                  </div>
+                )}
+                {debt > 0 && customerId === "" && (
+                  <p className="text-xs text-warning">Chọn khách hàng để ghi nợ phần còn thiếu.</p>
+                )}
+              </>
             )}
 
-            <Button className="w-full" size="lg" loading={processing} disabled={!canPay} onClick={pay}>
-              Thu tiền · {formatVnd(total)}
-            </Button>
+            {method === "transfer" ? (
+              <Button className="w-full" size="lg" loading={processing} disabled={!canTransfer} onClick={payByTransfer}>
+                <QrCode className="size-4" /> Tạo QR · {formatVnd(total)}
+              </Button>
+            ) : (
+              <Button className="w-full" size="lg" loading={processing} disabled={!canCash} onClick={pay}>
+                Thu tiền · {formatVnd(total)}
+              </Button>
+            )}
           </div>
         </aside>
       </div>
+
+      {/* Đơn chờ chuyển khoản */}
+      {pending && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[oklch(22%_0.01_80/.5)] p-6">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-6 text-center shadow-lg">
+            <p className="font-display text-lg font-semibold tracking-tight">Quét QR để thanh toán</p>
+            <p className="tnum text-sm text-fg-muted">
+              Đơn {pending.code} · {formatVnd(pending.total)}
+            </p>
+            {hasBank(bank) && (
+              <div className="mt-4 flex justify-center">
+                <Image
+                  src={buildBankQrUrl(bank, pending.total, transferMemo(pending.code))!}
+                  alt="QR chuyển khoản"
+                  width={220}
+                  height={220}
+                  className="rounded-lg border border-border"
+                  unoptimized
+                />
+              </div>
+            )}
+            <div className="mt-3 space-y-0.5 text-xs text-fg-muted">
+              <p>
+                {bank.name} · <span className="tnum">{bank.account}</span>
+              </p>
+              <p>
+                Nội dung: <span className="font-medium text-fg">{transferMemo(pending.code)}</span>
+              </p>
+            </div>
+            <p className="mt-4 inline-flex items-center gap-2 text-sm text-fg-muted">
+              <Loader2 className="size-4 animate-spin" /> Đang chờ tiền về…
+            </p>
+            <div className="mt-4 flex gap-2">
+              <Button variant="ghost" className="flex-1" disabled={pendingBusy} onClick={cancelPending}>
+                Huỷ đơn
+              </Button>
+              <Button className="flex-1" loading={pendingBusy} onClick={confirmPendingManual}>
+                Đã nhận tiền
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Thành công */}
       {success && (

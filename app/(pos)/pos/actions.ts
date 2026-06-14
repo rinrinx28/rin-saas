@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { saleSchema } from "@/lib/validations/sale";
+import { saleSchema, transferOrderSchema } from "@/lib/validations/sale";
 
 export interface SaleResult {
   error?: string;
@@ -37,4 +37,74 @@ export async function createSaleAction(values: unknown): Promise<SaleResult> {
   revalidatePath("/inventory");
   revalidatePath("/orders");
   return { sale: data as { id: string; code: string; total: number } };
+}
+
+// Tạo đơn chờ chuyển khoản (paid 0) → trả mã đơn để sinh QR mang đúng mã.
+export async function createTransferOrderAction(values: unknown): Promise<SaleResult> {
+  const parsed = transferOrderSchema.safeParse(values);
+  if (!parsed.success) return { error: "Dữ liệu không hợp lệ" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_transfer_order", {
+    p_store: parsed.data.storeId,
+    p_customer: parsed.data.customerId || null,
+    p_discount: parsed.data.discount,
+    p_items: parsed.data.items.map((it) => ({
+      variant_id: it.variantId,
+      qty: it.qty,
+      price: it.price,
+    })),
+  });
+  if (error) {
+    return {
+      error: error.message.includes("tồn kho")
+        ? "Không đủ tồn kho cho một sản phẩm trong giỏ"
+        : "Không tạo được đơn hàng",
+    };
+  }
+
+  revalidatePath("/inventory");
+  revalidatePath("/orders");
+  return { sale: data as { id: string; code: string; total: number } };
+}
+
+// Thu ngân xác nhận đã nhận tiền (khi chưa bật webhook đối soát).
+export async function confirmTransferPaidAction(orderId: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("apply_manual_payment", {
+    p_order: orderId,
+    p_method: "transfer",
+  });
+  if (error) return { error: "Không xác nhận được thanh toán" };
+  revalidatePath("/orders");
+  return {};
+}
+
+// Huỷ đơn chờ thanh toán (hoàn tồn kho).
+export async function cancelTransferOrderAction(orderId: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_order", { p_order: orderId });
+  if (error) {
+    return {
+      error: error.message.includes("đã thanh toán")
+        ? "Đơn đã thanh toán, không thể huỷ"
+        : "Không huỷ được đơn",
+    };
+  }
+  revalidatePath("/inventory");
+  revalidatePath("/orders");
+  return {};
+}
+
+// Poll trạng thái trả tiền của đơn (fallback khi realtime trễ).
+export async function checkOrderPaidAction(
+  orderId: string,
+): Promise<{ paid: number; total: number } | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("orders")
+    .select("paid, total")
+    .eq("id", orderId)
+    .maybeSingle();
+  return data ? { paid: data.paid, total: data.total } : null;
 }
