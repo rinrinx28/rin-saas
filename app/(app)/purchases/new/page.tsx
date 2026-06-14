@@ -17,12 +17,13 @@ export default async function NewPurchasePage() {
   if (!storeId) redirect("/onboarding");
 
   const supabase = await createClient();
-  const [{ data: stores }, { data: variants }] = await Promise.all([
+  const [{ data: stores }, { data: variants }, { data: suppliers }] = await Promise.all([
     supabase.from("stores").select("id, name").eq("org_id", orgId).order("created_at"),
     supabase
       .from("product_variants")
       .select("id, name, cost, products(name)")
       .order("created_at", { ascending: false }),
+    supabase.from("suppliers").select("id, name").order("name"),
   ]);
 
   const variantOptions = ((variants as VariantQueryRow[] | null) ?? []).map((v) => ({
@@ -35,6 +36,7 @@ export default async function NewPurchasePage() {
     <PurchaseForm
       stores={stores ?? []}
       variants={variantOptions}
+      suppliers={suppliers ?? []}
       activeStoreId={storeId}
     />
   );

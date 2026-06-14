@@ -24,19 +24,26 @@ interface VariantOption {
   label: string;
   cost: number;
 }
+interface SupplierOption {
+  id: string;
+  name: string;
+}
 
 interface PurchaseFormProps {
   stores: Store[];
   variants: VariantOption[];
+  suppliers: SupplierOption[];
   activeStoreId: string;
 }
 
 const selectClass =
   "flex h-9 w-full rounded-md border border-border bg-surface-2 px-3 text-base text-fg transition-colors hover:bg-surface focus-visible:border-primary focus-visible:bg-surface";
 
-export function PurchaseForm({ stores, variants, activeStoreId }: PurchaseFormProps) {
+export function PurchaseForm({ stores, variants, suppliers, activeStoreId }: PurchaseFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [paidStr, setPaidStr] = useState("");
+  const [supplierId, setSupplierId] = useState("");
   const {
     register,
     handleSubmit,
@@ -48,6 +55,7 @@ export function PurchaseForm({ stores, variants, activeStoreId }: PurchaseFormPr
       storeId: activeStoreId,
       supplierId: "",
       note: "",
+      paid: 0,
       items: [{ variantId: "", qty: 1, cost: 0 }],
     },
   });
@@ -57,10 +65,22 @@ export function PurchaseForm({ stores, variants, activeStoreId }: PurchaseFormPr
     (s, it) => s + (Number(it?.qty) || 0) * (Number(it?.cost) || 0),
     0,
   );
+  const paidEntered = paidStr === "" ? total : Math.max(Number(paidStr) || 0, 0);
+  const paidToOrder = Math.min(paidEntered, total);
+  const debt = total - paidToOrder;
+  const canSubmit = debt === 0 || supplierId !== "";
 
   async function onSubmit(values: PurchaseInput) {
     setServerError(null);
-    const res = await createPurchaseAction(values);
+    if (!canSubmit) {
+      setServerError("Chọn nhà cung cấp để ghi nợ phần còn thiếu");
+      return;
+    }
+    const res = await createPurchaseAction({
+      ...values,
+      supplierId: supplierId || undefined,
+      paid: paidToOrder,
+    });
     if (res?.error) setServerError(res.error);
   }
 
@@ -93,6 +113,20 @@ export function PurchaseForm({ stores, variants, activeStoreId }: PurchaseFormPr
               <Label htmlFor="storeId">Nhập vào chi nhánh</Label>
               <select id="storeId" className={selectClass} {...register("storeId")}>
                 {stores.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="supplierId">Nhà cung cấp (tùy chọn)</Label>
+              <select
+                id="supplierId"
+                className={selectClass}
+                value={supplierId}
+                onChange={(e) => setSupplierId(e.target.value)}
+              >
+                <option value="">— Không chọn —</option>
+                {suppliers.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
@@ -140,9 +174,32 @@ export function PurchaseForm({ stores, variants, activeStoreId }: PurchaseFormPr
               </div>
             ))}
           </CardContent>
-          <div className="flex items-center justify-between border-t border-border p-4">
-            <span className="text-sm text-fg-muted">Tổng tiền nhập</span>
-            <span className="tnum text-lg font-semibold">{formatVnd(total)}</span>
+          <div className="space-y-2 border-t border-border p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-fg-muted">Tổng tiền nhập</span>
+              <span className="tnum text-lg font-semibold">{formatVnd(total)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm text-fg-muted">Đã trả NCC</span>
+              <Input
+                id="po-paid"
+                type="number"
+                min={0}
+                placeholder={String(total)}
+                value={paidStr}
+                onChange={(e) => setPaidStr(e.target.value)}
+                className="tnum h-8 w-40 text-right"
+              />
+            </div>
+            {debt > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-danger">Ghi nợ NCC</span>
+                <span className="tnum font-medium text-danger">{formatVnd(debt)}</span>
+              </div>
+            )}
+            {debt > 0 && supplierId === "" && (
+              <p className="text-xs text-warning">Chọn nhà cung cấp để ghi nợ phần còn thiếu.</p>
+            )}
           </div>
         </Card>
 

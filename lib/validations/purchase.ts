@@ -10,6 +10,7 @@ export const purchaseSchema = z.object({
   storeId: z.string().uuid("Chọn chi nhánh"),
   supplierId: z.string().optional(),
   note: z.string().optional(),
+  paid: z.number().int().min(0),
   items: z.array(purchaseItemSchema).min(1, "Cần ít nhất 1 dòng hàng"),
 });
 

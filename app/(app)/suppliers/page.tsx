@@ -1,11 +1,18 @@
-import { PagePlaceholder } from "@/components/app-shell/page-placeholder";
+import { PageHeader } from "@/components/app-shell/page-header";
+import { SupplierManager } from "@/components/suppliers/supplier-manager";
+import { createClient } from "@/lib/supabase/server";
 
-export default function SuppliersPage() {
+export default async function SuppliersPage() {
+  const supabase = await createClient();
+  const { data: suppliers } = await supabase
+    .from("suppliers")
+    .select("id, name, phone, debt")
+    .order("created_at", { ascending: false });
+
   return (
-    <PagePlaceholder
-      title="Nhà cung cấp"
-      description="Danh sách nhà cung cấp và công nợ phải trả."
-      phase="Phase 3 — Vận hành & báo cáo"
-    />
+    <>
+      <PageHeader title="Nhà cung cấp" description="Danh sách NCC và công nợ phải trả." />
+      <SupplierManager suppliers={suppliers ?? []} />
+    </>
   );
 }

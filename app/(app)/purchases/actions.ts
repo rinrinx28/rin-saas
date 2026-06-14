@@ -23,8 +23,15 @@ export async function createPurchaseAction(values: unknown): Promise<ActionResul
       qty: it.qty,
       cost: it.cost,
     })),
+    p_paid: parsed.data.paid,
   });
-  if (error) return { error: "Không tạo được phiếu nhập" };
+  if (error) {
+    return {
+      error: error.message.includes("nhà cung cấp")
+        ? "Phải chọn nhà cung cấp để ghi nợ"
+        : "Không tạo được phiếu nhập",
+    };
+  }
 
   revalidatePath("/purchases");
   revalidatePath("/inventory");
