@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getActiveOrgId } from "@/lib/org";
+import { getActiveOrgId, isManager } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
 import { productSchema } from "@/lib/validations/catalog";
 
@@ -108,6 +108,10 @@ export async function updateProductAction(
 }
 
 export async function deleteProductAction(id: string): Promise<ActionResult> {
+  const orgId = await getActiveOrgId();
+  if (!orgId || !(await isManager(orgId))) {
+    return { error: "Bạn không có quyền xóa sản phẩm" };
+  }
   const supabase = await createClient();
   const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) return { error: "Không xóa được sản phẩm" };
