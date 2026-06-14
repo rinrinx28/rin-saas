@@ -193,3 +193,46 @@
     }
   }
 }
+
+/* Hiệu ứng thanh toán thành công: vẽ nét SVG + pháo giấy (confetti) */
+@keyframes draw-stroke {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.confetti-piece {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 1px;
+  opacity: 0;
+  animation: confetti-fly 1.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes confetti-fly {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--cx), var(--cy)) rotate(var(--cr)) scale(0.4);
+    opacity: 0;
+  }
+}
