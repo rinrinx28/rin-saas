@@ -18,12 +18,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, note: "ignored_non_in" });
   }
 
+  // SePay tự tách "code" nếu cấu hình tiền tố mã; nếu không, dò trong content.
   const content = String(body.content ?? "");
-  const match = content.match(/RIN[A-Z0-9]+/i);
-  if (!match) return NextResponse.json({ ok: true, note: "no_memo" });
+  const rawCode = body.code ? String(body.code) : content.match(/RIN[A-Z0-9]+/i)?.[0];
+  if (!rawCode) return NextResponse.json({ ok: true, note: "no_memo" });
 
   const amount = Number(body.transferAmount ?? 0);
-  const result = await confirmPayment(match[0].toUpperCase(), amount);
+  const result = await confirmPayment(rawCode.toUpperCase(), amount);
 
   return NextResponse.json({ ok: result.ok, reason: result.reason });
 }

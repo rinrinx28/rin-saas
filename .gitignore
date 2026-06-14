@@ -47,3 +47,6 @@ next-env.d.ts
 # supabase CLI temp
 supabase/.temp/
 supabase/.branches/
+
+# Doc chua credentials SePay PG (khong commit)
+sepay.md
