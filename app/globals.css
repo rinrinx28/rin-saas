@@ -219,11 +219,11 @@
   position: absolute;
   left: 0;
   top: 0;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 1px;
   opacity: 0;
-  animation: confetti-fly 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: confetti-fly 1.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes confetti-fly {

@@ -24,13 +24,13 @@ interface Piece {
 function makePieces(): Piece[] {
   return Array.from({ length: PIECES }, (_, i) => {
     const angle = Math.random() * Math.PI * 2;
-    const dist = 60 + Math.random() * 90;
+    const dist = 110 + Math.random() * 170; // bay rộng hơn
     return {
       id: i,
       cx: Math.cos(angle) * dist,
-      cy: Math.sin(angle) * dist + 30, // lệch xuống cho giống trọng lực
+      cy: Math.sin(angle) * dist + 50, // lệch xuống cho giống trọng lực
       cr: Math.random() * 540 - 270,
-      delay: Math.random() * 0.12,
+      delay: Math.random() * 0.18,
       color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
     };
   });
@@ -41,7 +41,8 @@ export function SuccessCheck() {
   const [pieces, setPieces] = useState<Piece[]>([]);
 
   useEffect(() => {
-    const t = setTimeout(() => setPieces(makePieces()), 850);
+    // Nổ pháo sau khi vẽ xong vòng tròn + dấu tích (~1.2s).
+    const t = setTimeout(() => setPieces(makePieces()), 1200);
     return () => clearTimeout(t);
   }, []);
 
@@ -56,7 +57,7 @@ export function SuccessCheck() {
           stroke="currentColor"
           strokeWidth="2.5"
           style={{ strokeDasharray: 160, strokeDashoffset: 160 }}
-          className="animate-[draw-stroke_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+          className="animate-[draw-stroke_0.8s_cubic-bezier(0.16,1,0.3,1)_forwards]"
         />
         <path
           d="M15 27 l7.5 7.5 L37 19"
@@ -66,7 +67,7 @@ export function SuccessCheck() {
           strokeLinecap="round"
           strokeLinejoin="round"
           style={{ strokeDasharray: 40, strokeDashoffset: 40 }}
-          className="animate-[draw-stroke_0.35s_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+          className="animate-[draw-stroke_0.55s_0.7s_cubic-bezier(0.16,1,0.3,1)_forwards]"
         />
       </svg>
       {pieces.length > 0 && (
