@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import type { MyInvite } from "@/app/(app)/invites/actions";
+import { InvitePrompt } from "@/components/app-shell/invite-prompt";
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { Topbar } from "@/components/app-shell/topbar";
 import {
@@ -20,11 +23,32 @@ export default async function AppLayout({
   if (!user) redirect("/login");
 
   // Org của user (RLS chỉ trả org mà user là thành viên)
-  const { data: orgs } = await supabase
-    .from("organizations")
-    .select("id, name")
-    .order("created_at");
-  if (!orgs || orgs.length === 0) redirect("/onboarding");
+  const [{ data: orgs }, { data: invitesData }] = await Promise.all([
+    supabase.from("organizations").select("id, name").order("created_at"),
+    supabase.rpc("list_invites_for_me"),
+  ]);
+  const invites = (invitesData as MyInvite[] | null) ?? [];
+
+  // Chưa thuộc cửa hàng nào: nếu có lời mời thì hiện để đồng ý/từ chối,
+  // không thì sang onboarding tạo cửa hàng.
+  if (!orgs || orgs.length === 0) {
+    if (invites.length === 0) redirect("/onboarding");
+    return (
+      <div className="min-h-dvh bg-bg px-4 py-16">
+        <div className="mx-auto max-w-md">
+          <h1 className="mb-1 font-display text-2xl font-semibold tracking-tight">Lời mời tham gia</h1>
+          <p className="mb-6 text-sm text-fg-muted">
+            Bạn được mời vào cửa hàng dưới đây. Hoặc{" "}
+            <Link href="/onboarding" className="text-primary hover:underline">
+              tạo cửa hàng mới
+            </Link>
+            .
+          </p>
+          <InvitePrompt invites={invites} />
+        </div>
+      </div>
+    );
+  }
 
   const cookieStore = await cookies();
   const activeOrg =
@@ -59,7 +83,10 @@ export default async function AppLayout({
           userEmail={user.email ?? ""}
         />
         <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-6xl">{children}</div>
+          <div className="mx-auto max-w-6xl">
+            <InvitePrompt invites={invites} />
+            {children}
+          </div>
         </main>
       </div>
     </div>

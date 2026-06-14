@@ -31,6 +31,7 @@ thiết kế & quy ước của dự án. Mỗi quyết định đã duyệt đ�
 | 0008 | [Hóa đơn điện tử (HĐĐT)](0008-hoa-don-dien-tu.md)     | Accepted   |
 | 0009 | [Thanh toán: cấu hình TK, QR & cổng](0009-thanh-toan-qr-cong.md) | Accepted   |
 | 0010 | [Đối soát chuyển khoản tự động](0010-doi-soat-tu-dong.md) | Accepted   |
+| 0011 | [Nhân sự: vai trò, chi nhánh & lời mời](0011-nhan-su-vai-tro-loi-moi.md) | Accepted   |
 
 ## Sắp tới (đang chờ brainstorm + duyệt)
 
