@@ -40,6 +40,17 @@ export async function isManager(orgId: string): Promise<boolean> {
   return role === "owner" || role === "admin";
 }
 
+// Gói cước hiện tại của org (free | pro | business).
+export async function getOrgPlan(orgId: string): Promise<string> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("organizations")
+    .select("plan")
+    .eq("id", orgId)
+    .single();
+  return data?.plan ?? "free";
+}
+
 // Chi nhánh đang active của org (theo cookie, fallback chi nhánh đầu tiên).
 export async function getActiveStoreId(orgId: string): Promise<string | null> {
   const supabase = await createClient();

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { checkLimit } from "@/lib/limits";
 import { getActiveOrgId, isManager } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
 import { productSchema } from "@/lib/validations/catalog";
@@ -16,6 +17,9 @@ export async function createProductAction(values: unknown): Promise<ActionResult
 
   const orgId = await getActiveOrgId();
   if (!orgId) return { error: "Chưa chọn cửa hàng" };
+
+  const limitErr = await checkLimit(orgId, "products");
+  if (limitErr) return { error: limitErr };
 
   const supabase = await createClient();
   const p = parsed.data;

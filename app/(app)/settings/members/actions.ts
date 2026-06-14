@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { checkLimit } from "@/lib/limits";
 import { getActiveOrgId } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
 import { addMemberSchema } from "@/lib/validations/member";
@@ -23,6 +24,9 @@ export async function addMemberAction(values: unknown): Promise<ActionResult> {
 
   const orgId = await getActiveOrgId();
   if (!orgId) return { error: "Chưa chọn cửa hàng" };
+
+  const limitErr = await checkLimit(orgId, "members");
+  if (limitErr) return { error: limitErr };
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("add_member", {

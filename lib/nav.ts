@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Boxes,
+  CreditCard,
   Factory,
   LayoutDashboard,
   Package,
@@ -66,6 +67,7 @@ export const navGroups: NavGroup[] = [
       { label: "Cửa hàng", href: "/settings", icon: Settings },
       { label: "Chi nhánh", href: "/settings/stores", icon: Store },
       { label: "Nhân viên", href: "/settings/members", icon: UsersRound },
+      { label: "Gói cước", href: "/settings/billing", icon: CreditCard },
     ],
   },
 ];

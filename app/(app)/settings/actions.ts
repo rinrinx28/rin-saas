@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { checkLimit } from "@/lib/limits";
 import { getActiveOrgId, isManager } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
 import { orgSchema, storeSchema } from "@/lib/validations/settings";
@@ -44,6 +45,9 @@ export async function createStoreAction(values: unknown): Promise<ActionResult> 
 
   const guard = await requireManager();
   if ("error" in guard) return guard;
+
+  const limitErr = await checkLimit(guard.orgId, "stores");
+  if (limitErr) return { error: limitErr };
 
   const supabase = await createClient();
   const { error } = await supabase.from("stores").insert({
