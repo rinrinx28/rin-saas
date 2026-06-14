@@ -35,7 +35,23 @@ interface CartLine {
 
 type Method = "cash" | "transfer";
 
-export function PosScreen({ storeId, items }: { storeId: string; items: PosItem[] }) {
+interface CustomerOption {
+  id: string;
+  name: string;
+}
+
+const selectClass =
+  "flex h-9 w-full rounded-md border border-border bg-surface-2 px-3 text-sm text-fg transition-colors hover:bg-surface focus-visible:border-primary focus-visible:bg-surface";
+
+export function PosScreen({
+  storeId,
+  items,
+  customers,
+}: {
+  storeId: string;
+  items: PosItem[];
+  customers: CustomerOption[];
+}) {
   const [stock, setStock] = useState<Record<string, number>>(
     () => Object.fromEntries(items.map((i) => [i.variantId, i.stock])),
   );
@@ -43,10 +59,11 @@ export function PosScreen({ storeId, items }: { storeId: string; items: PosItem[
   const [search, setSearch] = useState("");
   const [discount, setDiscount] = useState(0);
   const [method, setMethod] = useState<Method>("cash");
-  const [received, setReceived] = useState("");
+  const [customerId, setCustomerId] = useState("");
+  const [paidStr, setPaidStr] = useState("");
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<{ code: string; total: number; change: number } | null>(null);
+  const [success, setSuccess] = useState<{ code: string; total: number; change: number; debt: number } | null>(null);
 
   // Realtime: tồn kho thay đổi (chi nhánh này) → cập nhật số hiển thị
   useEffect(() => {
@@ -82,7 +99,11 @@ export function PosScreen({ storeId, items }: { storeId: string; items: PosItem[
 
   const subtotal = cart.reduce((s, l) => s + l.price * l.qty, 0);
   const total = Math.max(subtotal - discount, 0);
-  const change = method === "cash" && received ? Math.max(Number(received) - total, 0) : 0;
+  const paidEntered = paidStr === "" ? total : Math.max(Number(paidStr) || 0, 0);
+  const paidToOrder = Math.min(paidEntered, total);
+  const debt = total - paidToOrder;
+  const change = Math.max(paidEntered - total, 0);
+  const canPay = cart.length > 0 && (debt === 0 || customerId !== "");
 
   function addToCart(item: PosItem) {
     const have = stock[item.variantId] ?? 0;
@@ -110,20 +131,22 @@ export function PosScreen({ storeId, items }: { storeId: string; items: PosItem[
   function reset() {
     setCart([]);
     setDiscount(0);
-    setReceived("");
+    setPaidStr("");
+    setCustomerId("");
     setSuccess(null);
     setError(null);
   }
 
   async function pay() {
-    if (cart.length === 0) return;
+    if (!canPay) return;
     setProcessing(true);
     setError(null);
     const res = await createSaleAction({
       storeId,
+      customerId: customerId || undefined,
       discount,
       method,
-      paid: total,
+      paid: paidToOrder,
       items: cart.map((l) => ({ variantId: l.variantId, qty: l.qty, price: l.price })),
     });
     setProcessing(false);
@@ -138,7 +161,7 @@ export function PosScreen({ storeId, items }: { storeId: string; items: PosItem[
         for (const l of cart) next[l.variantId] = (next[l.variantId] ?? 0) - l.qty;
         return next;
       });
-      setSuccess({ code: res.sale.code, total: res.sale.total, change });
+      setSuccess({ code: res.sale.code, total: res.sale.total, change, debt });
     }
   }
 
@@ -250,6 +273,7 @@ export function PosScreen({ storeId, items }: { storeId: string; items: PosItem[
             <div className="flex items-center justify-between gap-2 text-sm">
               <span className="text-fg-muted">Chiết khấu</span>
               <Input
+                id="pos-discount"
                 type="number"
                 min={0}
                 value={discount || ""}
@@ -261,6 +285,18 @@ export function PosScreen({ storeId, items }: { storeId: string; items: PosItem[
               <span className="font-medium">Tổng cộng</span>
               <span className="tnum text-xl font-semibold text-primary">{formatVnd(total)}</span>
             </div>
+
+            <select
+              id="pos-customer"
+              className={selectClass}
+              value={customerId}
+              onChange={(e) => setCustomerId(e.target.value)}
+            >
+              <option value="">Khách lẻ</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
 
             <div className="flex gap-2">
               {(["cash", "transfer"] as Method[]).map((m) => (
@@ -276,27 +312,36 @@ export function PosScreen({ storeId, items }: { storeId: string; items: PosItem[
                 </Button>
               ))}
             </div>
-            {method === "cash" && (
-              <div className="flex items-center justify-between gap-2 text-sm">
-                <span className="text-fg-muted">Khách đưa</span>
-                <Input
-                  type="number"
-                  min={0}
-                  placeholder={String(total)}
-                  value={received}
-                  onChange={(e) => setReceived(e.target.value)}
-                  className="tnum h-8 w-32 text-right"
-                />
-              </div>
-            )}
-            {method === "cash" && received !== "" && (
+
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <span className="text-fg-muted">Tiền khách trả</span>
+              <Input
+                id="pos-paid"
+                type="number"
+                min={0}
+                placeholder={String(total)}
+                value={paidStr}
+                onChange={(e) => setPaidStr(e.target.value)}
+                className="tnum h-8 w-32 text-right"
+              />
+            </div>
+            {change > 0 && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-fg-muted">Tiền thối</span>
                 <span className="tnum font-medium">{formatVnd(change)}</span>
               </div>
             )}
+            {debt > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-danger">Ghi nợ</span>
+                <span className="tnum font-medium text-danger">{formatVnd(debt)}</span>
+              </div>
+            )}
+            {debt > 0 && customerId === "" && (
+              <p className="text-xs text-warning">Chọn khách hàng để ghi nợ phần còn thiếu.</p>
+            )}
 
-            <Button className="w-full" size="lg" loading={processing} disabled={cart.length === 0} onClick={pay}>
+            <Button className="w-full" size="lg" loading={processing} disabled={!canPay} onClick={pay}>
               Thu tiền · {formatVnd(total)}
             </Button>
           </div>
@@ -313,6 +358,9 @@ export function PosScreen({ storeId, items }: { storeId: string; items: PosItem[
             <p className="tnum mt-3 text-2xl font-semibold">{formatVnd(success.total)}</p>
             {success.change > 0 && (
               <p className="tnum text-sm text-fg-muted">Tiền thối: {formatVnd(success.change)}</p>
+            )}
+            {success.debt > 0 && (
+              <p className="tnum text-sm text-danger">Ghi nợ: {formatVnd(success.debt)}</p>
             )}
             <Button className="mt-5 w-full" onClick={reset}>
               Bán đơn mới

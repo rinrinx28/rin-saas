@@ -18,12 +18,13 @@ export default async function PosPage() {
   if (!storeId) redirect("/onboarding");
 
   const supabase = await createClient();
-  const [{ data: variants }, { data: inv }] = await Promise.all([
+  const [{ data: variants }, { data: inv }, { data: customers }] = await Promise.all([
     supabase
       .from("product_variants")
       .select("id, name, price, barcode, products(name, is_active)")
       .order("created_at", { ascending: false }),
     supabase.from("inventory").select("variant_id, qty").eq("store_id", storeId),
+    supabase.from("customers").select("id, name").order("name"),
   ]);
 
   const qtyByVariant = new Map(
@@ -44,5 +45,11 @@ export default async function PosPage() {
       stock: qtyByVariant.get(v.id) ?? 0,
     }));
 
-  return <PosScreen storeId={storeId} items={items} />;
+  return (
+    <PosScreen
+      storeId={storeId}
+      items={items}
+      customers={customers ?? []}
+    />
+  );
 }

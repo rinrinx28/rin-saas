@@ -1,11 +1,18 @@
-import { PagePlaceholder } from "@/components/app-shell/page-placeholder";
+import { PageHeader } from "@/components/app-shell/page-header";
+import { CustomerManager } from "@/components/customers/customer-manager";
+import { createClient } from "@/lib/supabase/server";
 
-export default function CustomersPage() {
+export default async function CustomersPage() {
+  const supabase = await createClient();
+  const { data: customers } = await supabase
+    .from("customers")
+    .select("id, name, phone, debt")
+    .order("created_at", { ascending: false });
+
   return (
-    <PagePlaceholder
-      title="Khách hàng"
-      description="Danh sách khách hàng và công nợ."
-      phase="Phase 2 — Core POS"
-    />
+    <>
+      <PageHeader title="Khách hàng" description="Danh sách khách và công nợ." />
+      <CustomerManager customers={customers ?? []} />
+    </>
   );
 }
