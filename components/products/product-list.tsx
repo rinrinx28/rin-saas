@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { deleteProductAction } from "@/app/(app)/products/actions";
+import { Pagination } from "@/components/list/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -43,13 +44,25 @@ function priceLabel(prices: number[]): string {
   return min === max ? formatVnd(min) : `${formatVnd(min)} – ${formatVnd(max)}`;
 }
 
-export function ProductList({ products }: { products: ProductRow[] }) {
+export function ProductList({
+  products,
+  page,
+  totalPages,
+  total,
+  filtered,
+}: {
+  products: ProductRow[];
+  page: number;
+  totalPages: number;
+  total: number;
+  filtered: boolean;
+}) {
   const [deleting, setDeleting] = useState<ProductRow | null>(null);
 
   return (
     <Card>
       <div className="flex items-center justify-between border-b border-border p-4">
-        <p className="text-sm text-fg-muted">{products.length} sản phẩm</p>
+        <p className="tnum text-sm text-fg-muted">{total} sản phẩm</p>
         <Button size="sm" asChild>
           <Link href="/products/new">
             <Plus /> Thêm sản phẩm
@@ -63,8 +76,10 @@ export function ProductList({ products }: { products: ProductRow[] }) {
             <Package className="size-5" />
           </div>
           <div className="space-y-1">
-            <p className="font-medium">Chưa có sản phẩm</p>
-            <p className="text-sm text-fg-muted">Thêm sản phẩm đầu tiên để bắt đầu bán hàng.</p>
+            <p className="font-medium">{filtered ? "Không có sản phẩm phù hợp" : "Chưa có sản phẩm"}</p>
+            <p className="text-sm text-fg-muted">
+              {filtered ? "Thử đổi từ khóa hoặc danh mục." : "Thêm sản phẩm đầu tiên để bắt đầu bán hàng."}
+            </p>
           </div>
         </div>
       ) : (
@@ -123,6 +138,7 @@ export function ProductList({ products }: { products: ProductRow[] }) {
           </TableBody>
         </Table>
       )}
+      {products.length > 0 && <Pagination page={page} totalPages={totalPages} total={total} />}
 
       <DeleteDialog product={deleting} onClose={() => setDeleting(null)} />
     </Card>
