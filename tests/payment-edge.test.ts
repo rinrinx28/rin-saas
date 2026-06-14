@@ -43,6 +43,7 @@ async function makeVariant(price: number, stock: number): Promise<string> {
       p_supplier: null,
       p_note: null,
       p_items: [{ variant_id: variant.data.id, qty: stock, cost: 0 }],
+      p_paid: 0,
     });
     if (recv.error) throw recv.error;
   }

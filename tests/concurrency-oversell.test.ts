@@ -71,6 +71,7 @@ beforeAll(async () => {
     p_supplier: null,
     p_note: null,
     p_items: [{ variant_id: variantId, qty: 1, cost: 50000 }],
+    p_paid: 50000,
   });
   if (recv.error) throw recv.error;
 }, 60000);
