@@ -1,9 +1,14 @@
+"use client";
+
+import { useState } from "react";
 import { BANK_ICON_CODES } from "@/lib/payment/bank-icon-codes";
 import type { VnBank } from "@/lib/payment/vn-banks";
 import { cn } from "@/lib/utils";
 
-// Icon ngân hàng: ưu tiên icon app SVG thật (public/banks/<CODE>.svg);
-// ngân hàng chưa có icon → fallback chip màu riêng + mã. ADR 0009.
+// Icon ngân hàng, ưu tiên giảm dần:
+// 1) App icon SVG thật (public/banks/<CODE>.svg) — render nguyên bản (đã có nền + bo góc).
+// 2) Logo VietQR (cdn.vietqr.io) trên ô nền trắng — cho bank chưa có app icon.
+// 3) Chip màu + mã — khi cả hai ảnh lỗi. ADR 0009.
 
 const SIZES = {
   sm: "size-6 text-[9px]",
@@ -13,7 +18,6 @@ const SIZES = {
 
 const PX = { sm: 24, md: 32, lg: 44 } as const;
 
-// Hue ổn định theo code → mỗi ngân hàng một màu chip riêng (khi chưa có icon).
 function hueFromCode(code: string): number {
   let h = 0;
   for (let i = 0; i < code.length; i++) h = (h * 31 + code.charCodeAt(i)) % 360;
@@ -29,9 +33,12 @@ export function BankIcon({
   size?: keyof typeof SIZES;
   className?: string;
 }) {
-  if (BANK_ICON_CODES.has(bank.code)) {
-    const px = PX[size];
-    // App icon đã có sẵn nền + bo góc chuẩn trong SVG → render nguyên bản, không bọc thêm.
+  const [svgFailed, setSvgFailed] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
+  const px = PX[size];
+
+  // 1) App icon SVG thật — render nguyên bản (giữ nền + bo góc của design).
+  if (BANK_ICON_CODES.has(bank.code) && !svgFailed) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
@@ -39,11 +46,36 @@ export function BankIcon({
         alt={bank.shortName}
         width={px}
         height={px}
+        onError={() => setSvgFailed(true)}
         className={cn("shrink-0 object-contain", SIZES[size], className)}
       />
     );
   }
 
+  // 2) Logo VietQR (chữ ngang, nền trong suốt) → đặt trên ô nền trắng cho rõ.
+  if (bank.logo && !logoFailed) {
+    return (
+      <span
+        className={cn(
+          "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white",
+          SIZES[size],
+          className,
+        )}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={bank.logo}
+          alt={bank.shortName}
+          width={px}
+          height={px}
+          onError={() => setLogoFailed(true)}
+          className="size-full object-contain p-0.5"
+        />
+      </span>
+    );
+  }
+
+  // 3) Chip màu + mã ngân hàng.
   const hue = hueFromCode(bank.code);
   return (
     <span
