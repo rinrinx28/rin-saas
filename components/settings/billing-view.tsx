@@ -1,11 +1,25 @@
 "use client";
 
 import { Check } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { updatePlanAction } from "@/app/(app)/settings/billing/actions";
+import {
+  createPaymentRequestAction,
+  downgradeToFreeAction,
+  simulatePaymentAction,
+} from "@/app/(app)/settings/billing/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   LIMIT_LABEL,
   type LimitKind,
@@ -21,37 +35,71 @@ export interface Usage {
   members: { used: number; limit: number | null };
 }
 
+export interface BankInfo {
+  name: string;
+  account: string;
+  bin: string;
+}
+
+interface PaymentState {
+  plan: PlanKey;
+  memo: string;
+  amount: number;
+}
+
 const KINDS: LimitKind[] = ["products", "stores", "members"];
 
 export function BillingView({
   currentPlan,
   usage,
   canManage,
+  bank,
+  simulateEnabled,
+  expiresAt,
 }: {
   currentPlan: PlanKey;
   usage: Usage;
   canManage: boolean;
+  bank: BankInfo;
+  simulateEnabled: boolean;
+  expiresAt: string | null;
 }) {
+  const router = useRouter();
   const [pending, setPending] = useState<PlanKey | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [payment, setPayment] = useState<PaymentState | null>(null);
 
   async function choose(plan: PlanKey) {
     if (plan === currentPlan) return;
-    setPending(plan);
     setError(null);
-    const res = await updatePlanAction(plan);
+    setPending(plan);
+    if (plan === "free") {
+      const res = await downgradeToFreeAction();
+      setPending(null);
+      if (res?.error) setError(res.error);
+      else router.refresh();
+      return;
+    }
+    const res = await createPaymentRequestAction(plan);
     setPending(null);
     if (res?.error) setError(res.error);
+    else if (res.memo && res.amount != null) {
+      setPayment({ plan, memo: res.memo, amount: res.amount });
+    }
   }
 
   return (
     <div className="space-y-6">
-      {/* Mức sử dụng */}
       <Card>
         <CardContent className="p-5">
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <span className="text-sm text-fg-muted">Gói hiện tại:</span>
             <Badge variant="primary">{PLANS[currentPlan].name}</Badge>
+            {currentPlan !== "free" && expiresAt && (
+              <span className="text-sm text-fg-muted">
+                · hết hạn {new Date(expiresAt).toLocaleDateString("vi-VN")}
+              </span>
+            )}
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             {KINDS.map((k) => {
@@ -88,7 +136,6 @@ export function BillingView({
         </p>
       )}
 
-      {/* Bảng giá */}
       <div className="grid gap-4 lg:grid-cols-3">
         {PLAN_ORDER.map((key) => {
           const plan = PLANS[key];
@@ -114,12 +161,12 @@ export function BillingView({
                 </ul>
                 <Button
                   className="mt-5 w-full"
-                  variant={isCurrent ? "outline" : "primary"}
+                  variant={isCurrent ? "outline" : key === "free" ? "secondary" : "primary"}
                   disabled={isCurrent || !canManage}
                   loading={pending === key}
                   onClick={() => choose(key)}
                 >
-                  {isCurrent ? "Gói hiện tại" : "Chọn gói"}
+                  {isCurrent ? "Gói hiện tại" : key === "free" ? "Hạ về Miễn phí" : "Nâng cấp"}
                 </Button>
               </CardContent>
             </Card>
@@ -127,9 +174,109 @@ export function BillingView({
         })}
       </div>
 
-      <p className="text-xs text-fg-subtle">
-        * Demo cho phép đổi gói ngay. Thanh toán thật (VNPay / MoMo / SePay) sẽ tích hợp sau.
-      </p>
+      <PaymentDialog
+        payment={payment}
+        bank={bank}
+        simulateEnabled={simulateEnabled}
+        onClose={() => setPayment(null)}
+        onPaid={() => {
+          setPayment(null);
+          router.refresh();
+        }}
+      />
+    </div>
+  );
+}
+
+function PaymentDialog({
+  payment,
+  bank,
+  simulateEnabled,
+  onClose,
+  onPaid,
+}: {
+  payment: PaymentState | null;
+  bank: BankInfo;
+  simulateEnabled: boolean;
+  onClose: () => void;
+  onPaid: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function simulate() {
+    if (!payment) return;
+    setLoading(true);
+    setError(null);
+    const res = await simulatePaymentAction(payment.memo);
+    setLoading(false);
+    if (res?.error) setError(res.error);
+    else onPaid();
+  }
+
+  const qrUrl =
+    payment && bank.bin && bank.account
+      ? `https://img.vietqr.io/image/${bank.bin}-${bank.account}-compact2.png?amount=${payment.amount}&addInfo=${encodeURIComponent(payment.memo)}`
+      : null;
+
+  return (
+    <Dialog open={payment !== null} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Chuyển khoản nâng cấp {payment ? PLANS[payment.plan].name : ""}</DialogTitle>
+          <DialogDescription>
+            Quét QR hoặc chuyển khoản đúng nội dung. Gói tự kích hoạt sau khi nhận tiền.
+          </DialogDescription>
+        </DialogHeader>
+
+        {payment && (
+          <div className="space-y-3">
+            {qrUrl && (
+              <div className="flex justify-center">
+                <Image src={qrUrl} alt="VietQR" width={200} height={200} className="rounded-lg border border-border" unoptimized />
+              </div>
+            )}
+            <div className="space-y-1.5 rounded-md border border-border bg-surface-2 p-3 text-sm">
+              <Row label="Ngân hàng" value={bank.name || "(cấu hình NEXT_PUBLIC_BANK_*)"} />
+              <Row label="Số tài khoản" value={bank.account || "—"} mono />
+              <Row label="Số tiền" value={formatVnd(payment.amount)} mono />
+              <Row label="Nội dung CK" value={payment.memo} mono highlight />
+            </div>
+            <p className="text-xs text-fg-subtle">
+              ⚠️ Nhập đúng nội dung “{payment.memo}” để hệ thống tự đối soát.
+            </p>
+            {error && <p className="text-sm text-danger">{error}</p>}
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={onClose}>Đóng</Button>
+          {simulateEnabled && (
+            <Button loading={loading} onClick={simulate}>
+              Tôi đã chuyển khoản (giả lập)
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Row({
+  label,
+  value,
+  mono,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-fg-muted">{label}</span>
+      <span className={cn(mono && "tnum", highlight && "font-semibold text-primary")}>{value}</span>
     </div>
   );
 }

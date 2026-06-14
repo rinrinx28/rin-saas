@@ -4,17 +4,20 @@ import { BillingView, type Usage } from "@/components/settings/billing-view";
 import { getActiveOrgId, getMyRole, getOrgPlan } from "@/lib/org";
 import { getUsage } from "@/lib/limits";
 import type { PlanKey } from "@/lib/plans";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function BillingPage() {
   const orgId = await getActiveOrgId();
   if (!orgId) redirect("/onboarding");
 
-  const [plan, role, products, stores, members] = await Promise.all([
+  const supabase = await createClient();
+  const [plan, role, products, stores, members, { data: org }] = await Promise.all([
     getOrgPlan(orgId),
     getMyRole(orgId),
     getUsage(orgId, "products"),
     getUsage(orgId, "stores"),
     getUsage(orgId, "members"),
+    supabase.from("organizations").select("plan_expires_at").eq("id", orgId).single(),
   ]);
 
   const usage: Usage = { products, stores, members };
@@ -26,6 +29,13 @@ export default async function BillingPage() {
         currentPlan={plan as PlanKey}
         usage={usage}
         canManage={role === "owner" || role === "admin"}
+        bank={{
+          name: process.env.NEXT_PUBLIC_BANK_NAME ?? "",
+          account: process.env.NEXT_PUBLIC_BANK_ACCOUNT ?? "",
+          bin: process.env.NEXT_PUBLIC_BANK_BIN ?? "",
+        }}
+        simulateEnabled={process.env.NEXT_PUBLIC_PAYMENT_SIMULATE === "true"}
+        expiresAt={org?.plan_expires_at ?? null}
       />
     </>
   );

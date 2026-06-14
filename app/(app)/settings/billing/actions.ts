@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { confirmPayment } from "@/lib/billing/activate";
 import { getActiveOrgId, isManager } from "@/lib/org";
 import { PLANS } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
@@ -9,11 +10,47 @@ export interface ActionResult {
   error?: string;
 }
 
-// Demo: đổi gói ngay. TODO(VN): tích hợp thanh toán VNPay/MoMo + SePay/Casso để
-// kích hoạt gói sau khi đối soát chuyển khoản (Stripe không dùng được ở VN).
-export async function updatePlanAction(plan: string): Promise<ActionResult> {
-  if (!(plan in PLANS)) return { error: "Gói không hợp lệ" };
+export interface PaymentRequestResult {
+  error?: string;
+  memo?: string;
+  amount?: number;
+}
 
+function genMemo(): string {
+  let s = "";
+  for (let i = 0; i < 7; i++) s += "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)];
+  return `RIN${s}`;
+}
+
+// Tạo yêu cầu thanh toán cho gói trả phí → trả về memo + số tiền để chuyển khoản.
+export async function createPaymentRequestAction(plan: string): Promise<PaymentRequestResult> {
+  if (plan !== "pro" && plan !== "business") return { error: "Gói không hợp lệ" };
+
+  const orgId = await getActiveOrgId();
+  if (!orgId) return { error: "Chưa chọn cửa hàng" };
+  if (!(await isManager(orgId))) return { error: "Bạn không có quyền đổi gói" };
+
+  const amount = PLANS[plan].price;
+  const memo = genMemo();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase.from("payment_requests").insert({
+    org_id: orgId,
+    plan,
+    amount,
+    memo,
+    created_by: user?.id ?? null,
+  });
+  if (error) return { error: "Không tạo được yêu cầu thanh toán" };
+
+  return { memo, amount };
+}
+
+// Hạ về gói miễn phí (không cần thanh toán).
+export async function downgradeToFreeAction(): Promise<ActionResult> {
   const orgId = await getActiveOrgId();
   if (!orgId) return { error: "Chưa chọn cửa hàng" };
   if (!(await isManager(orgId))) return { error: "Bạn không có quyền đổi gói" };
@@ -21,9 +58,29 @@ export async function updatePlanAction(plan: string): Promise<ActionResult> {
   const supabase = await createClient();
   const { error } = await supabase
     .from("organizations")
-    .update({ plan })
+    .update({ plan: "free", plan_expires_at: null })
     .eq("id", orgId);
   if (error) return { error: "Không đổi được gói" };
+
+  revalidatePath("/settings/billing");
+  return {};
+}
+
+// Giả lập đã chuyển khoản (chỉ bật ở môi trường dev) → chạy đúng luồng đối soát.
+export async function simulatePaymentAction(memo: string): Promise<ActionResult> {
+  if (process.env.NEXT_PUBLIC_PAYMENT_SIMULATE !== "true") {
+    return { error: "Giả lập đang tắt" };
+  }
+  const supabase = await createClient();
+  const { data: req } = await supabase
+    .from("payment_requests")
+    .select("amount")
+    .eq("memo", memo)
+    .maybeSingle();
+  if (!req) return { error: "Không tìm thấy yêu cầu" };
+
+  const res = await confirmPayment(memo, req.amount);
+  if (!res.ok) return { error: "Đối soát thất bại" };
 
   revalidatePath("/settings/billing");
   return {};
