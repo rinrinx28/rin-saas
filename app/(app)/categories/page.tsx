@@ -1,11 +1,21 @@
-import { PagePlaceholder } from "@/components/app-shell/page-placeholder";
+import { CategoryManager } from "@/components/categories/category-manager";
+import { PageHeader } from "@/components/app-shell/page-header";
+import { createClient } from "@/lib/supabase/server";
 
-export default function CategoriesPage() {
+export default async function CategoriesPage() {
+  const supabase = await createClient();
+  const { data: categories } = await supabase
+    .from("categories")
+    .select("id, name, parent_id")
+    .order("created_at");
+
   return (
-    <PagePlaceholder
-      title="Danh mục"
-      description="Cây danh mục sản phẩm (cha — con)."
-      phase="Phase 2 — Core POS"
-    />
+    <>
+      <PageHeader
+        title="Danh mục"
+        description="Tổ chức sản phẩm theo nhóm (có thể lồng cha — con)."
+      />
+      <CategoryManager categories={categories ?? []} />
+    </>
   );
 }
