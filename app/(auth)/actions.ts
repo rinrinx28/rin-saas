@@ -1,8 +1,9 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { loginSchema, registerSchema } from "@/lib/validations/auth";
+import { forgotPasswordSchema, loginSchema, registerSchema } from "@/lib/validations/auth";
 
 export interface ActionResult {
   error?: string;
@@ -43,6 +44,25 @@ export async function signUpAction(values: unknown): Promise<ActionResult> {
   }
 
   redirect("/onboarding");
+}
+
+// Luôn trả notice chung dù email có tồn tại hay không (tránh dò tài khoản).
+const RESET_NOTICE =
+  "Nếu email tồn tại, chúng tôi đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.";
+
+export async function requestPasswordResetAction(values: unknown): Promise<ActionResult> {
+  const parsed = forgotPasswordSchema.safeParse(values);
+  if (!parsed.success) return { error: "Email không hợp lệ" };
+
+  const h = await headers();
+  const origin = h.get("origin") ?? `https://${h.get("host")}`;
+
+  const supabase = await createClient();
+  await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    redirectTo: `${origin}/reset-password`,
+  });
+
+  return { notice: RESET_NOTICE };
 }
 
 export async function signOutAction(): Promise<void> {

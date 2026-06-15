@@ -19,6 +19,20 @@ export const registerSchema = z
     path: ["confirmPassword"],
   });
 
+export const forgotPasswordSchema = z.object({
+  email: z.email("Email không hợp lệ"),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    password: z.string().min(8, "Mật khẩu tối thiểu 8 ký tự"),
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Mật khẩu nhập lại không khớp",
+    path: ["confirmPassword"],
+  });
+
 export const onboardingSchema = z.object({
   orgName: z.string().min(2, "Tên cửa hàng tối thiểu 2 ký tự"),
   storeName: z.string().min(2, "Tên chi nhánh tối thiểu 2 ký tự"),
@@ -27,4 +41,6 @@ export const onboardingSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
