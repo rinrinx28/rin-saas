@@ -41,6 +41,7 @@ export const stubProvider: EInvoiceProvider = {
         total: order.total,
         sellerTaxCode: config?.sellerTaxCode ?? null,
         sellerName: config?.sellerName ?? null,
+        sellerAddress: config?.sellerAddress ?? null,
         templateNo: config?.templateNo ?? null,
       },
     };
