@@ -5,15 +5,23 @@ import type { EInvoiceConfig, EInvoiceOrder, EInvoiceProvider, IssueResult } fro
 
 const DEFAULT_SERIES = "1C26TYY"; // ký hiệu mẫu (mẫu số 1, ký hiệu C, năm 2026...)
 
-// Mã CQT dạng chuỗi 30+ ký tự hex; ở đây dẫn xuất xác định từ id đơn để ổn định.
+// Mã CQT dạng chuỗi 34 ký tự hex; dẫn xuất xác định từ id đơn (ổn định) nhưng
+// phân tán bằng xorshift để trông giống mã thật, không lặp pattern.
 function deriveCode(seed: string): string {
-  let h = 2166136261;
+  let h = 2166136261 >>> 0;
   for (let i = 0; i < seed.length; i++) {
     h ^= seed.charCodeAt(i);
-    h = Math.imul(h, 16777619);
+    h = Math.imul(h, 16777619) >>> 0;
   }
-  const hex = (h >>> 0).toString(16).padStart(8, "0");
-  return `00${hex}${hex}${hex}${hex}`.slice(0, 34).toUpperCase();
+  let out = "";
+  while (out.length < 34) {
+    h ^= h << 13;
+    h ^= h >>> 17;
+    h ^= h << 5;
+    h >>>= 0;
+    out += h.toString(16).padStart(8, "0");
+  }
+  return out.slice(0, 34).toUpperCase();
 }
 
 // Số HĐ dẫn xuất từ mã đơn (8 chữ số) — ổn định, không phụ thuộc thời gian.
