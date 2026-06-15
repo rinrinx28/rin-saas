@@ -15,7 +15,7 @@ export default async function ReportsPage() {
   return (
     <>
       <PageHeader
-        title="Báo cáo"
+        title="Báo cáo doanh thu"
         description="Phân tích bán hàng, nhập hàng, khách hàng và nhà cung cấp — cập nhật trực tiếp."
       />
       <ReportsDashboard initial={initial} initialDays={DEFAULT_DAYS} />

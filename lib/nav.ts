@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Boxes,
+  Coins,
   CreditCard,
   Factory,
   Landmark,
@@ -15,6 +16,7 @@ import {
   Truck,
   Users,
   UsersRound,
+  Warehouse,
 } from "lucide-react";
 
 export interface NavItem {
@@ -60,7 +62,11 @@ export const navGroups: NavGroup[] = [
   },
   {
     label: "Báo cáo",
-    items: [{ label: "Báo cáo", href: "/reports", icon: TrendingUp }],
+    items: [
+      { label: "Doanh thu", href: "/reports", icon: TrendingUp },
+      { label: "Tồn kho", href: "/reports/inventory", icon: Warehouse },
+      { label: "Lãi/lỗ", href: "/reports/profit", icon: Coins },
+    ],
   },
   {
     label: "Cài đặt",

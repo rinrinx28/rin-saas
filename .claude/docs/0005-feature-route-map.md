@@ -62,9 +62,11 @@ app/
 │  │  └─ [id]/page.tsx             [P3] + công nợ
 │  │
 │  ├─ reports/
-│  │  ├─ page.tsx                  [P3] doanh thu
-│  │  ├─ inventory/page.tsx        [P3] tồn kho
-│  │  └─ profit/page.tsx           [P3] lãi/lỗ
+│  │  ├─ page.tsx                  [P3] doanh thu (dashboard tổng quan: DT/lãi
+│  │  │                                 realtime + top SP/KH/NCC + PTTT + bán-vs-nhập)
+│  │  ├─ inventory/page.tsx        [P3] tồn kho (định giá theo danh mục, hàng sắp
+│  │  │                                 hết theo ngưỡng, hàng tồn đọng)
+│  │  └─ profit/page.tsx           [P3] lãi/lỗ (lãi gộp theo ngày/SP/danh mục)
 │  │
 │  └─ settings/
 │     ├─ page.tsx                  [P1] thông tin org
