@@ -1,9 +1,9 @@
 // Provider stub — sinh số/ký hiệu/mã CQT + link tra cứu giả để chạy
 // end-to-end khi chưa cắm nhà cung cấp thật. ADR 0008.
 
-import type { EInvoiceOrder, EInvoiceProvider, IssueResult } from "./types";
+import type { EInvoiceConfig, EInvoiceOrder, EInvoiceProvider, IssueResult } from "./types";
 
-const SERIES = "1C26TYY"; // ký hiệu mẫu (mẫu số 1, ký hiệu C, năm 2026...)
+const DEFAULT_SERIES = "1C26TYY"; // ký hiệu mẫu (mẫu số 1, ký hiệu C, năm 2026...)
 
 // Mã CQT dạng chuỗi 30+ ký tự hex; ở đây dẫn xuất xác định từ id đơn để ổn định.
 function deriveCode(seed: string): string {
@@ -25,16 +25,24 @@ function deriveNo(code: string): string {
 export const stubProvider: EInvoiceProvider = {
   key: "stub",
   name: "HĐĐT (giả lập)",
-  async issue(order: EInvoiceOrder): Promise<IssueResult> {
+  async issue(order: EInvoiceOrder, config: EInvoiceConfig | null): Promise<IssueResult> {
     const code = deriveCode(order.id);
     const invoiceNo = deriveNo(order.code);
+    const series = config?.series?.trim() || DEFAULT_SERIES;
     return {
       status: "issued",
-      series: SERIES,
+      series,
       invoiceNo,
       taxAuthorityCode: code,
       lookupUrl: `https://tra-cuu-hddt.example/lookup?code=${code}`,
-      payload: { stub: true, order: order.code, total: order.total },
+      payload: {
+        stub: true,
+        order: order.code,
+        total: order.total,
+        sellerTaxCode: config?.sellerTaxCode ?? null,
+        sellerName: config?.sellerName ?? null,
+        templateNo: config?.templateNo ?? null,
+      },
     };
   },
 };

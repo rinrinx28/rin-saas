@@ -23,6 +23,21 @@ export interface EInvoiceOrder {
   items: EInvoiceOrderItem[];
 }
 
+// Cấu hình HĐĐT per-tenant (từ bảng einvoice_config). Provider thật dùng
+// credentials ở đây; stub dùng seller info + ký hiệu để sinh dữ liệu giả.
+export interface EInvoiceConfig {
+  provider: string;
+  enabled: boolean;
+  sellerTaxCode: string | null;
+  sellerName: string | null;
+  sellerAddress: string | null;
+  templateNo: string | null;
+  series: string | null;
+  apiEndpoint: string | null;
+  apiUsername: string | null;
+  apiSecret: string | null;
+}
+
 // Kết quả phát hành (đã được provider chuẩn hóa).
 export interface IssueResult {
   status: "issued" | "failed";
@@ -38,5 +53,5 @@ export interface IssueResult {
 export interface EInvoiceProvider {
   readonly key: string;
   readonly name: string;
-  issue(order: EInvoiceOrder): Promise<IssueResult>;
+  issue(order: EInvoiceOrder, config: EInvoiceConfig | null): Promise<IssueResult>;
 }
