@@ -8,10 +8,11 @@ import type { EInvoiceConfigInput } from "@/lib/validations/settings";
 interface ConfigRow {
   provider: string;
   enabled: boolean;
+  invoice_type: "sales" | "gtgt";
+  tax_rate: number;
   seller_tax_code: string | null;
   seller_name: string | null;
   seller_address: string | null;
-  template_no: string | null;
   series: string | null;
   api_endpoint: string | null;
   api_username: string | null;
@@ -21,10 +22,11 @@ interface ConfigRow {
 const DEFAULTS: EInvoiceConfigInput = {
   provider: "stub",
   enabled: false,
+  invoiceType: "sales",
+  taxRate: 10,
   sellerTaxCode: "",
   sellerName: "",
   sellerAddress: "",
-  templateNo: "",
   series: "",
   apiEndpoint: "",
   apiUsername: "",
@@ -51,7 +53,7 @@ export default async function EInvoiceSettingsPage() {
   const { data } = await supabase
     .from("einvoice_config")
     .select(
-      "provider, enabled, seller_tax_code, seller_name, seller_address, template_no, series, api_endpoint, api_username, api_secret",
+      "provider, enabled, invoice_type, tax_rate, seller_tax_code, seller_name, seller_address, series, api_endpoint, api_username, api_secret",
     )
     .eq("org_id", orgId)
     .maybeSingle();
@@ -61,10 +63,11 @@ export default async function EInvoiceSettingsPage() {
     ? {
         provider: row.provider,
         enabled: row.enabled,
+        invoiceType: row.invoice_type,
+        taxRate: row.tax_rate,
         sellerTaxCode: row.seller_tax_code ?? "",
         sellerName: row.seller_name ?? "",
         sellerAddress: row.seller_address ?? "",
-        templateNo: row.template_no ?? "",
         series: row.series ?? "",
         apiEndpoint: row.api_endpoint ?? "",
         apiUsername: row.api_username ?? "",

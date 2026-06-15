@@ -28,10 +28,13 @@ export interface EInvoiceOrder {
 export interface EInvoiceConfig {
   provider: string;
   enabled: boolean;
+  /** 'sales' = hóa đơn bán hàng (mẫu 2); 'gtgt' = hóa đơn GTGT (mẫu 1). */
+  invoiceType: "sales" | "gtgt";
+  /** Thuế suất GTGT (%) — chỉ dùng khi invoiceType = 'gtgt'. */
+  taxRate: number;
   sellerTaxCode: string | null;
   sellerName: string | null;
   sellerAddress: string | null;
-  templateNo: string | null;
   series: string | null;
   apiEndpoint: string | null;
   apiUsername: string | null;

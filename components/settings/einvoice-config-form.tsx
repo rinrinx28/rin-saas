@@ -29,6 +29,7 @@ export function EInvoiceConfigForm({ initial }: { initial: EInvoiceConfigInput }
   });
 
   const provider = useWatch({ control, name: "provider" });
+  const invoiceType = useWatch({ control, name: "invoiceType" });
   const meta = getProviderMeta(provider);
   const isStub = !meta?.implemented;
 
@@ -108,16 +109,36 @@ export function EInvoiceConfigForm({ initial }: { initial: EInvoiceConfigInput }
         </CardContent>
       </Card>
 
-      {/* Mẫu hóa đơn */}
+      {/* Loại hóa đơn */}
       <Card>
         <CardHeader>
-          <CardTitle>Mẫu hóa đơn</CardTitle>
-          <CardDescription>Mẫu số và ký hiệu do nhà cung cấp / cơ quan thuế cấp.</CardDescription>
+          <CardTitle>Loại hóa đơn</CardTitle>
+          <CardDescription>
+            Mẫu số tự suy ra theo loại: GTGT = 1, bán hàng = 2. Ký hiệu 6 ký tự theo TT 78
+            (vd <span className="font-mono">C26TYY</span>).
+          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label="Mẫu số" htmlFor="templateNo" error={errors.templateNo?.message}>
-            <Input id="templateNo" placeholder="1" {...register("templateNo")} />
+          <Field label="Loại hóa đơn" htmlFor="invoiceType" error={errors.invoiceType?.message}>
+            <select id="invoiceType" className={selectClass} {...register("invoiceType")}>
+              <option value="sales">Hóa đơn bán hàng (mẫu 2)</option>
+              <option value="gtgt">Hóa đơn GTGT (mẫu 1)</option>
+            </select>
           </Field>
+          {invoiceType === "gtgt" && (
+            <Field label="Thuế suất GTGT" htmlFor="taxRate" error={errors.taxRate?.message}>
+              <select
+                id="taxRate"
+                className={selectClass}
+                {...register("taxRate", { valueAsNumber: true })}
+              >
+                <option value="10">10%</option>
+                <option value="8">8%</option>
+                <option value="5">5%</option>
+                <option value="0">0% / KCT</option>
+              </select>
+            </Field>
+          )}
           <Field label="Ký hiệu" htmlFor="series" error={errors.series?.message}>
             <Input id="series" placeholder="C26TYY" {...register("series")} />
           </Field>

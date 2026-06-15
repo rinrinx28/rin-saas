@@ -50,6 +50,18 @@ không khóa cứng vào một API.
 - Link tra cứu & mã CQT hiển thị ở `/orders/[id]`; cắm vào bill in sau.
 - Đổi nhà cung cấp = thêm file provider, không đụng UI/DB.
 
+## Bản thể hiện HĐĐT (NĐ 123/2020, TT 78/2021)
+
+- Trang `/print/einvoice/[id]` render **bản thể hiện** đúng chỉ tiêu bắt buộc
+  (Điều 10 NĐ 123): mẫu số/ký hiệu/số, mã CQT, người bán (MST/địa chỉ), người
+  mua, bảng hàng hóa (ĐVT/SL/đơn giá/thành tiền), tổng cộng, **số tiền bằng
+  chữ**, **chữ ký số người bán** (Ký bởi/Ký ngày), đơn vị tiền tệ VND, font
+  Times New Roman.
+- **Loại hóa đơn cấu hình per-tenant**: `sales` = Hóa đơn bán hàng (mẫu 2,
+  không tách thuế — khớp dữ liệu POS giá đã gồm thuế) | `gtgt` = Hóa đơn GTGT
+  (mẫu 1, back-out thuế từ giá gồm thuế theo `tax_rate`). Mặc định `sales`.
+- `/preview/einvoice`: xem trước cả 2 loại với dữ liệu mẫu (không cần DB).
+
 ## Chưa làm (để phase sau)
 
 - Provider thật (Viettel/MISA/VNPT) + chứng thư số.

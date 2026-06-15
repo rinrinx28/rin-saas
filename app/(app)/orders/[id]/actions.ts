@@ -8,10 +8,11 @@ import { createClient } from "@/lib/supabase/server";
 interface EInvoiceConfigRow {
   provider: string;
   enabled: boolean;
+  invoice_type: "sales" | "gtgt";
+  tax_rate: number;
   seller_tax_code: string | null;
   seller_name: string | null;
   seller_address: string | null;
-  template_no: string | null;
   series: string | null;
   api_endpoint: string | null;
   api_username: string | null;
@@ -23,10 +24,11 @@ function toConfig(row: EInvoiceConfigRow | null): EInvoiceConfig | null {
   return {
     provider: row.provider,
     enabled: row.enabled,
+    invoiceType: row.invoice_type,
+    taxRate: row.tax_rate,
     sellerTaxCode: row.seller_tax_code,
     sellerName: row.seller_name,
     sellerAddress: row.seller_address,
-    templateNo: row.template_no,
     series: row.series,
     apiEndpoint: row.api_endpoint,
     apiUsername: row.api_username,
@@ -95,7 +97,7 @@ export async function issueEInvoiceAction(orderId: string): Promise<ActionResult
   const { data: cfgRow } = await supabase
     .from("einvoice_config")
     .select(
-      "provider, enabled, seller_tax_code, seller_name, seller_address, template_no, series, api_endpoint, api_username, api_secret",
+      "provider, enabled, invoice_type, tax_rate, seller_tax_code, seller_name, seller_address, series, api_endpoint, api_username, api_secret",
     )
     .eq("org_id", orgId)
     .maybeSingle();

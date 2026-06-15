@@ -149,10 +149,11 @@ describe("HĐĐT — provider stub (đơn vị)", () => {
     const r = await provider.issue(order, {
       provider: "stub",
       enabled: true,
+      invoiceType: "gtgt",
+      taxRate: 10,
       sellerTaxCode: "0312345678",
       sellerName: "Cty Test",
       sellerAddress: null,
-      templateNo: "1",
       series: "K26ABC",
       apiEndpoint: null,
       apiUsername: null,

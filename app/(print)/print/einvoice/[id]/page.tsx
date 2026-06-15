@@ -38,10 +38,11 @@ interface EInvoiceRow {
   lookup_url: string | null;
   issued_at: string | null;
   payload: {
+    invoiceType?: "sales" | "gtgt" | null;
+    taxRate?: number | null;
     sellerName?: string | null;
     sellerTaxCode?: string | null;
     sellerAddress?: string | null;
-    templateNo?: string | null;
   } | null;
 }
 
@@ -87,7 +88,8 @@ export default async function PrintEInvoicePage({
   }
 
   const data: EInvoiceDocData = {
-    templateNo: ei.payload?.templateNo ?? null,
+    invoiceType: ei.payload?.invoiceType ?? "sales",
+    taxRate: ei.payload?.taxRate ?? 10,
     series: ei.series,
     invoiceNo: ei.invoice_no,
     taxAuthorityCode: ei.tax_authority_code,

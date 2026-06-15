@@ -2,13 +2,12 @@ import { EInvoiceDocument, type EInvoiceDocData } from "@/components/invoice/ein
 
 // Trang xem trước bản thể hiện HĐĐT với dữ liệu mẫu — để test giao diện
 // trước khi cắm nhà cung cấp thật. Không phụ thuộc DB.
-const SAMPLE: EInvoiceDocData = {
-  templateNo: "1",
+const BASE = {
   series: "C26TYY",
   invoiceNo: "00000123",
-  taxAuthorityCode: "00A1B2C3D4E5F60718293A4B5C6D7E8F90",
+  taxAuthorityCode: "4EF94B37946C87F896E33391E2BC10F974",
   issuedAt: "2026-06-16T10:30:45.000Z",
-  lookupUrl: "https://tra-cuu-hddt.example/lookup?code=00A1B2C3D4E5F6",
+  lookupUrl: "https://tra-cuu-hddt.example/lookup?code=4EF94B37946C",
   isStub: true,
   sellerName: "Cửa hàng Tạp hóa Minh An",
   sellerTaxCode: "0312345678",
@@ -25,12 +24,17 @@ const SAMPLE: EInvoiceDocData = {
   subtotal: 250000,
   discount: 0,
   total: 250000,
-};
+} satisfies Omit<EInvoiceDocData, "invoiceType" | "taxRate">;
+
+const SALES: EInvoiceDocData = { ...BASE, invoiceType: "sales", taxRate: 10 };
+const GTGT: EInvoiceDocData = { ...BASE, invoiceType: "gtgt", taxRate: 10 };
 
 export default function EInvoicePreviewPage() {
   return (
-    <div className="min-h-dvh bg-neutral-100">
-      <EInvoiceDocument data={SAMPLE} />
+    <div className="min-h-dvh space-y-8 bg-neutral-100 py-6">
+      <EInvoiceDocument data={SALES} />
+      <div className="mx-auto h-px w-[190mm] max-w-full bg-neutral-300 print:hidden" />
+      <EInvoiceDocument data={GTGT} />
     </div>
   );
 }

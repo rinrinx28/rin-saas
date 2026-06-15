@@ -28,6 +28,8 @@ export const storeSchema = z
 export const einvoiceConfigSchema = z.object({
   provider: z.enum(EINVOICE_PROVIDER_KEYS as [string, ...string[]]),
   enabled: z.boolean(),
+  invoiceType: z.enum(["sales", "gtgt"]),
+  taxRate: z.number().int().min(0).max(20),
   sellerTaxCode: z
     .string()
     .trim()
@@ -36,8 +38,12 @@ export const einvoiceConfigSchema = z.object({
     .optional(),
   sellerName: z.string().trim().max(150).optional(),
   sellerAddress: z.string().trim().max(255).optional(),
-  templateNo: z.string().trim().max(10).optional(),
-  series: z.string().trim().max(20).optional(),
+  series: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^[A-Za-z0-9]*$/, "Ký hiệu chỉ gồm chữ và số")
+    .optional(),
   apiEndpoint: z.string().trim().max(255).optional(),
   apiUsername: z.string().trim().max(100).optional(),
   apiSecret: z.string().trim().max(255).optional(),

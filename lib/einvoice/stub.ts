@@ -47,10 +47,11 @@ export const stubProvider: EInvoiceProvider = {
         stub: true,
         order: order.code,
         total: order.total,
+        invoiceType: config?.invoiceType ?? "sales",
+        taxRate: config?.taxRate ?? 10,
         sellerTaxCode: config?.sellerTaxCode ?? null,
         sellerName: config?.sellerName ?? null,
         sellerAddress: config?.sellerAddress ?? null,
-        templateNo: config?.templateNo ?? null,
       },
     };
   },
