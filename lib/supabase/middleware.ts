@@ -40,8 +40,11 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Trang landing "/" công khai cho mọi người (kể cả khách lạ).
+  const isLanding = pathname === "/";
+
   // Chưa đăng nhập + vào trang cần auth → đẩy về /login
-  if (!user && !matchPrefix(PUBLIC_PREFIXES, pathname)) {
+  if (!user && !isLanding && !matchPrefix(PUBLIC_PREFIXES, pathname)) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     return NextResponse.redirect(redirectUrl);

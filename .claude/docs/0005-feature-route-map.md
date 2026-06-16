@@ -81,9 +81,10 @@ app/
    └─ print/order/[id]/page.tsx    hóa đơn A4 + bill 80mm (toggle khổ)
 ```
 
-> `/` (gốc): trước mắt là **trang showcase tạm** (tham chiếu design). Khi shell P1
-> xong → `/` redirect tới `/dashboard` (đã đăng nhập) hoặc `/login`. Landing
-> marketing để [P4].
+> `/` (gốc): **trang landing marketing công khai** (P4 — đã làm). Giới thiệu sản
+> phẩm (hero + tính năng + trải nghiệm + bảng giá + CTA), animate bằng GSAP
+> (hero entrance + ScrollTrigger reveal, tôn trọng reduced-motion). Đã đăng nhập
+> → CTA dẫn thẳng `/dashboard`. Middleware cho `/` public.
 
 ## Điều hướng (sidebar trong (app))
 
