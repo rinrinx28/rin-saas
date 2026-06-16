@@ -1,4 +1,4 @@
-import { Plus, Truck } from "lucide-react";
+import { Plus, Printer, Truck } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { FilterSelect } from "@/components/list/filter-select";
@@ -98,6 +98,7 @@ export default async function PurchasesPage({
                   <TableHead>Nhà cung cấp</TableHead>
                   <TableHead className="text-right">Số mặt hàng</TableHead>
                   <TableHead className="text-right">Tổng tiền</TableHead>
+                  <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -110,6 +111,17 @@ export default async function PurchasesPage({
                     <TableCell className="text-fg-muted">{r.suppliers?.name ?? "—"}</TableCell>
                     <TableCell className="tnum text-right">{r.purchase_items.length}</TableCell>
                     <TableCell className="tnum text-right font-medium">{formatVnd(r.total)}</TableCell>
+                    <TableCell className="text-right">
+                      <a
+                        href={`/print/purchase/${r.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="In phiếu nhập kho"
+                        className="inline-flex size-8 items-center justify-center rounded-md text-fg-subtle transition-colors hover:bg-surface-2 hover:text-fg"
+                      >
+                        <Printer className="size-4" />
+                      </a>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
