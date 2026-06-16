@@ -1,9 +1,40 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getEInvoiceProvider, type EInvoiceOrder } from "@/lib/einvoice";
+import { getEInvoiceProvider, type EInvoiceConfig, type EInvoiceOrder } from "@/lib/einvoice";
 import { getActiveOrgId, isManager } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
+
+interface EInvoiceConfigRow {
+  provider: string;
+  enabled: boolean;
+  invoice_type: "sales" | "gtgt";
+  tax_rate: number;
+  seller_tax_code: string | null;
+  seller_name: string | null;
+  seller_address: string | null;
+  series: string | null;
+  api_endpoint: string | null;
+  api_username: string | null;
+  api_secret: string | null;
+}
+
+function toConfig(row: EInvoiceConfigRow | null): EInvoiceConfig | null {
+  if (!row) return null;
+  return {
+    provider: row.provider,
+    enabled: row.enabled,
+    invoiceType: row.invoice_type,
+    taxRate: row.tax_rate,
+    sellerTaxCode: row.seller_tax_code,
+    sellerName: row.seller_name,
+    sellerAddress: row.seller_address,
+    series: row.series,
+    apiEndpoint: row.api_endpoint,
+    apiUsername: row.api_username,
+    apiSecret: row.api_secret,
+  };
+}
 
 export interface ActionResult {
   error?: string;
@@ -62,10 +93,20 @@ export async function issueEInvoiceAction(orderId: string): Promise<ActionResult
     })),
   };
 
-  const provider = getEInvoiceProvider();
+  // Cấu hình HĐĐT per-tenant (chọn provider + thông tin người bán/ký hiệu).
+  const { data: cfgRow } = await supabase
+    .from("einvoice_config")
+    .select(
+      "provider, enabled, invoice_type, tax_rate, seller_tax_code, seller_name, seller_address, series, api_endpoint, api_username, api_secret",
+    )
+    .eq("org_id", orgId)
+    .maybeSingle();
+  const config = toConfig(cfgRow as EInvoiceConfigRow | null);
+
+  const provider = getEInvoiceProvider(config?.provider);
   let result;
   try {
-    result = await provider.issue(payload);
+    result = await provider.issue(payload, config);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Lỗi không xác định";
     result = { status: "failed" as const, error: message };

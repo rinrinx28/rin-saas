@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EINVOICE_PROVIDER_KEYS } from "@/lib/einvoice/providers";
 
 export const orgSchema = z.object({
   name: z.string().min(2, "Tên cửa hàng tối thiểu 2 ký tự"),
@@ -23,6 +24,32 @@ export const storeSchema = z
   })
   .merge(bankSchema);
 
+// Cấu hình HĐĐT per-tenant (ADR 0008). Các trường thông tin/credentials optional.
+export const einvoiceConfigSchema = z.object({
+  provider: z.enum(EINVOICE_PROVIDER_KEYS as [string, ...string[]]),
+  enabled: z.boolean(),
+  invoiceType: z.enum(["sales", "gtgt"]),
+  taxRate: z.number().int().min(0).max(20),
+  sellerTaxCode: z
+    .string()
+    .trim()
+    .max(14)
+    .regex(/^[0-9-]*$/, "MST chỉ gồm số và dấu gạch")
+    .optional(),
+  sellerName: z.string().trim().max(150).optional(),
+  sellerAddress: z.string().trim().max(255).optional(),
+  series: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^[A-Za-z0-9]*$/, "Ký hiệu chỉ gồm chữ và số")
+    .optional(),
+  apiEndpoint: z.string().trim().max(255).optional(),
+  apiUsername: z.string().trim().max(100).optional(),
+  apiSecret: z.string().trim().max(255).optional(),
+});
+
 export type OrgInput = z.infer<typeof orgSchema>;
 export type BankInput = z.infer<typeof bankSchema>;
 export type StoreInput = z.infer<typeof storeSchema>;
+export type EInvoiceConfigInput = z.infer<typeof einvoiceConfigSchema>;

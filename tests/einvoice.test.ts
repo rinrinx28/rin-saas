@@ -123,12 +123,43 @@ describe("HĐĐT — provider stub (đơn vị)", () => {
       customerPhone: null,
       items: [{ name: "SP A — Mặc định", qty: 1, price: 100000, total: 100000 }],
     };
-    const r1 = await provider.issue(order);
-    const r2 = await provider.issue(order);
+    const r1 = await provider.issue(order, null);
+    const r2 = await provider.issue(order, null);
     expect(r1.status).toBe("issued");
     expect(r1.taxAuthorityCode).toBeTruthy();
     expect(r1.lookupUrl).toContain("http");
     expect(r2.taxAuthorityCode).toBe(r1.taxAuthorityCode); // ổn định
+  });
+
+  it("stub dùng ký hiệu từ config khi có", async () => {
+    const provider = getEInvoiceProvider("stub");
+    const order = {
+      id: "cfg-order",
+      code: "HD250101-000009",
+      subtotal: 50000,
+      discount: 0,
+      total: 50000,
+      createdAt: new Date(0).toISOString(),
+      storeName: "CN1",
+      storeAddress: null,
+      customerName: null,
+      customerPhone: null,
+      items: [{ name: "SP B — Mặc định", qty: 1, price: 50000, total: 50000 }],
+    };
+    const r = await provider.issue(order, {
+      provider: "stub",
+      enabled: true,
+      invoiceType: "gtgt",
+      taxRate: 10,
+      sellerTaxCode: "0312345678",
+      sellerName: "Cty Test",
+      sellerAddress: null,
+      series: "K26ABC",
+      apiEndpoint: null,
+      apiUsername: null,
+      apiSecret: null,
+    });
+    expect(r.series).toBe("K26ABC");
   });
 });
 

@@ -1,10 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PREFIXES = ["/login", "/register", "/forgot-password"];
+// Route công khai (không cần đăng nhập).
+const PUBLIC_PREFIXES = ["/login", "/register", "/forgot-password", "/reset-password"];
+// Route chỉ dành cho khách (đã đăng nhập thì đẩy về dashboard). /reset-password
+// KHÔNG nằm đây: phiên khôi phục cần ở lại để đặt mật khẩu mới.
+const GUEST_ONLY_PREFIXES = ["/login", "/register", "/forgot-password"];
 
-function isPublic(pathname: string): boolean {
-  return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+function matchPrefix(prefixes: string[], pathname: string): boolean {
+  return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 // Refresh phiên + bảo vệ route. Nếu chưa cấu hình env → cho qua (UI vẫn chạy).
@@ -36,15 +40,18 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Trang landing "/" công khai cho mọi người (kể cả khách lạ).
+  const isLanding = pathname === "/";
+
   // Chưa đăng nhập + vào trang cần auth → đẩy về /login
-  if (!user && !isPublic(pathname)) {
+  if (!user && !isLanding && !matchPrefix(PUBLIC_PREFIXES, pathname)) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Đã đăng nhập mà vào trang auth → đẩy về /dashboard
-  if (user && isPublic(pathname)) {
+  // Đã đăng nhập mà vào trang chỉ-dành-cho-khách → đẩy về /dashboard
+  if (user && matchPrefix(GUEST_ONLY_PREFIXES, pathname)) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/dashboard";
     return NextResponse.redirect(redirectUrl);

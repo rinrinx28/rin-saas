@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, FileCheck2, Receipt } from "lucide-react";
+import { ExternalLink, FileCheck2, FileText, Receipt } from "lucide-react";
 import { useState } from "react";
 import { issueEInvoiceAction } from "@/app/(app)/orders/[id]/actions";
 import { Badge } from "@/components/ui/badge";
@@ -64,13 +64,20 @@ export function EInvoicePanel({
                 value={new Date(einvoice.issued_at).toLocaleString("vi-VN")}
               />
             )}
-            {einvoice.lookup_url && (
-              <Button variant="outline" size="sm" className="mt-1 w-full" asChild>
-                <a href={einvoice.lookup_url} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="size-4" /> Tra cứu hóa đơn
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <a href={`/print/einvoice/${orderId}`} target="_blank" rel="noopener noreferrer">
+                  <FileText className="size-4" /> Xem HĐĐT
                 </a>
               </Button>
-            )}
+              {einvoice.lookup_url && (
+                <Button variant="outline" size="sm" asChild>
+                  <a href={einvoice.lookup_url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="size-4" /> Tra cứu
+                  </a>
+                </Button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="space-y-3 border-t border-border pt-3">
