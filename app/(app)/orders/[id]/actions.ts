@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getEInvoiceProvider, type EInvoiceConfig, type EInvoiceOrder } from "@/lib/einvoice";
 import { getActiveOrgId, isManager } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
+import { returnSchema } from "@/lib/validations/return";
 
 interface EInvoiceConfigRow {
   provider: string;
@@ -135,4 +136,39 @@ export async function issueEInvoiceAction(orderId: string): Promise<ActionResult
 
   revalidatePath(`/orders/${orderId}`);
   return {};
+}
+
+export interface ReturnActionResult extends ActionResult {
+  result?: { id: string; code: string; subtotal: number; refund_cash: number; debt_reduced: number };
+}
+
+// Tạo phiếu trả hàng cho một đơn đã hoàn tất (hoàn tồn + hoàn tiền/giảm nợ).
+export async function createReturnAction(values: unknown): Promise<ReturnActionResult> {
+  const parsed = returnSchema.safeParse(values);
+  if (!parsed.success) return { error: "Dữ liệu không hợp lệ" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_return", {
+    p_order: parsed.data.orderId,
+    p_items: parsed.data.items.map((it) => ({
+      order_item_id: it.orderItemId,
+      qty: it.qty,
+      restock: it.restock,
+    })),
+    p_reason: parsed.data.reason || null,
+  });
+  if (error) {
+    return {
+      error: error.message.includes("vượt")
+        ? "Số lượng trả vượt số đã bán"
+        : error.message.includes("hoàn tất")
+          ? "Chỉ trả hàng cho đơn đã hoàn tất"
+          : "Không tạo được phiếu trả hàng",
+    };
+  }
+
+  revalidatePath(`/orders/${parsed.data.orderId}`);
+  revalidatePath("/inventory");
+  revalidatePath("/cash");
+  return { result: data as ReturnActionResult["result"] };
 }
