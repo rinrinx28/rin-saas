@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
 import { type PosCustomer, type PosProduct, PosScreen } from "@/components/pos/pos-screen";
+import { PosShiftGate } from "@/components/pos/pos-shift-gate";
+import { type ShiftDefinition } from "@/components/shifts/shift-manager";
 import { effectiveBank } from "@/lib/payment/bank-qr";
 import { getActiveOrgId, getActiveStoreId } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
+import type { OpeningMode } from "@/lib/validations/shift";
 
 interface VariantRow {
   id: string;
@@ -21,6 +24,45 @@ export default async function PosPage() {
   if (!storeId) redirect("/onboarding");
 
   const supabase = await createClient();
+
+  // Chặn POS khi chi nhánh chưa mở ca — bắt mở ca trước khi bán hàng.
+  const { data: openShift } = await supabase
+    .from("shifts")
+    .select("id")
+    .eq("store_id", storeId)
+    .eq("status", "open")
+    .maybeSingle();
+  if (!openShift) {
+    const [{ data: gateStore }, { data: gateOrg }, { data: defs }, { data: lastClosed }] =
+      await Promise.all([
+        supabase.from("stores").select("name").eq("id", storeId).single(),
+        supabase
+          .from("organizations")
+          .select("shift_opening_mode, shift_fixed_float")
+          .eq("id", orgId)
+          .single(),
+        supabase.rpc("effective_shift_definitions", { p_store: storeId }),
+        supabase
+          .from("shifts")
+          .select("closing_cash_counted")
+          .eq("store_id", storeId)
+          .eq("status", "closed")
+          .order("closed_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+    return (
+      <PosShiftGate
+        storeId={storeId}
+        storeName={gateStore?.name ?? ""}
+        definitions={(defs as ShiftDefinition[] | null) ?? []}
+        openingMode={(gateOrg?.shift_opening_mode ?? "manual") as OpeningMode}
+        fixedFloat={gateOrg?.shift_fixed_float ?? 0}
+        lastClosing={lastClosed?.closing_cash_counted ?? 0}
+      />
+    );
+  }
+
   const [{ data: variants }, { data: inv }, { data: customers }, { data: org }, { data: store }] =
     await Promise.all([
       supabase

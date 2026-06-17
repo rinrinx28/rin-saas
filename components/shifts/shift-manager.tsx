@@ -106,7 +106,7 @@ export function ShiftManager({
   );
 }
 
-function OpenShiftForm({
+export function OpenShiftForm({
   storeId,
   definitions,
   openingMode,
