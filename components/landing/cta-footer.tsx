@@ -1,6 +1,7 @@
-import { ArrowRight, Boxes } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LogoMark } from "@/components/ui/logo";
 
 const FOOTER_COLS = [
   {
@@ -61,7 +62,7 @@ export function CtaFooter({ isAuthed }: { isAuthed: boolean }) {
         <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center gap-2">
-              <Boxes className="size-5 text-primary" />
+              <LogoMark className="size-5 text-primary" />
               <span className="font-display text-lg font-semibold tracking-tight">rin·saas</span>
             </Link>
             <p className="mt-3 max-w-xs text-sm text-fg-muted">

@@ -2,8 +2,9 @@
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { Boxes, PanelLeft } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 import Link from "next/link";
+import { LogoMark } from "@/components/ui/logo";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
 import { SIDEBAR_COOKIE } from "@/lib/constants";
@@ -90,7 +91,7 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
       className="hidden shrink-0 flex-col overflow-hidden border-r border-border bg-surface md:flex"
     >
       <div className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-5">
-        <Boxes className="size-5 shrink-0 text-primary" />
+        <LogoMark className="size-5 shrink-0 text-primary" />
         <span
           data-collapsible
           className="whitespace-nowrap font-display text-lg font-semibold tracking-tight"

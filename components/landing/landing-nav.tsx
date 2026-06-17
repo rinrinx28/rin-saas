@@ -1,7 +1,7 @@
-import { Boxes } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { LogoMark } from "@/components/ui/logo";
 
 const LINKS = [
   { href: "#features", label: "Tính năng" },
@@ -17,7 +17,7 @@ export function LandingNav({ isAuthed }: { isAuthed: boolean }) {
         className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5"
       >
         <Link href="/" className="flex items-center gap-2">
-          <Boxes className="size-5 text-primary" />
+          <LogoMark className="size-5 text-primary" />
           <span className="font-display text-lg font-semibold tracking-tight">rin·saas</span>
         </Link>
 
