@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Wand2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
@@ -9,6 +9,7 @@ import {
   togglePromotionAction,
 } from "@/app/(app)/promotions/actions";
 import { Badge } from "@/components/ui/badge";
+import { Barcode } from "@/components/ui/barcode";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
@@ -23,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
+import { generatePromoCode } from "@/lib/codes";
 import { formatVnd } from "@/lib/utils";
 import { PROMO_TYPE_LABEL } from "@/lib/validations/promotion";
 
@@ -145,12 +147,30 @@ function PromotionForm() {
           </Field>
         )}
         <Field label="Mã coupon (để trống = tự áp mọi đơn)" htmlFor="promo-code">
-          <Input
-            id="promo-code"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="VD: HE2026"
-          />
+          <div className="flex gap-2">
+            <Input
+              id="promo-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="VD: HE2026"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="shrink-0"
+              aria-label="Tạo mã coupon tự động"
+              title="Tạo mã tự động"
+              onClick={() => setCode(generatePromoCode())}
+            >
+              <Wand2 className="size-4" />
+            </Button>
+          </div>
+          {code.trim() && (
+            <div className="mt-2 flex justify-center">
+              <Barcode value={code.trim()} height={44} showValue />
+            </div>
+          )}
         </Field>
         <Field label="Đơn tối thiểu (tuỳ chọn)" htmlFor="promo-min">
           <MoneyInput id="promo-min" value={minOrder} onChange={setMinOrder} />
@@ -248,6 +268,9 @@ function PromotionRow({ promo, canManage }: { promo: Promotion; canManage: boole
           {" · "}
           {PROMO_TYPE_LABEL[promo.type]}
         </p>
+        {promo.code && (
+          <Barcode value={promo.code} height={30} showValue={false} className="mt-1.5" />
+        )}
       </TableCell>
       <TableCell className="tnum font-medium">
         {promo.type === "percent" ? `${promo.value}%` : formatVnd(promo.value)}
