@@ -50,3 +50,4 @@ supabase/.branches/
 
 # Doc chua credentials SePay PG (khong commit)
 sepay.md
+.agents
