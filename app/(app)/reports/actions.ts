@@ -27,6 +27,13 @@ export interface PaymentSlice {
   count: number;
   amount: number;
 }
+export interface PromoStat {
+  name: string;
+  code: string | null;
+  uses: number;
+  discount: number;
+  revenue: number;
+}
 export interface ReportData {
   summary: { revenue: number; orders: number; cogs: number };
   daily: DailyPoint[];
@@ -35,6 +42,7 @@ export interface ReportData {
   topCustomers: RankItem[];
   topSuppliers: RankItem[];
   payments: PaymentSlice[];
+  promotions: PromoStat[];
   salesVsPurchases: SalesVsPurchase[];
   inventory: { cost: number; retail: number };
 }
@@ -47,6 +55,7 @@ const EMPTY: ReportData = {
   topCustomers: [],
   topSuppliers: [],
   payments: [],
+  promotions: [],
   salesVsPurchases: [],
   inventory: { cost: 0, retail: 0 },
 };
@@ -68,7 +77,7 @@ export async function fetchReportData(days: number): Promise<ReportData> {
   const p = { p_org: orgId, p_from: from.toISOString(), p_to: to.toISOString() };
 
   const supabase = await createClient();
-  const [sum, daily, prods, purch, custs, sups, pays, svp, inv] = await Promise.all([
+  const [sum, daily, prods, purch, custs, sups, pays, promos, svp, inv] = await Promise.all([
     supabase.rpc("report_summary", p),
     supabase.rpc("report_daily_revenue", p),
     supabase.rpc("top_products", { ...p, p_limit: LIMIT }),
@@ -76,6 +85,7 @@ export async function fetchReportData(days: number): Promise<ReportData> {
     supabase.rpc("top_customers", { ...p, p_limit: LIMIT }),
     supabase.rpc("top_suppliers", { ...p, p_limit: LIMIT }),
     supabase.rpc("payment_method_breakdown", p),
+    supabase.rpc("report_promotions", { ...p, p_limit: LIMIT }),
     supabase.rpc("product_sales_vs_purchases", { ...p, p_limit: LIMIT }),
     supabase.from("inventory").select("qty, product_variants(cost, price)").eq("org_id", orgId),
   ]);
@@ -94,6 +104,7 @@ export async function fetchReportData(days: number): Promise<ReportData> {
     topCustomers: (custs.data as RankItem[]) ?? [],
     topSuppliers: (sups.data as RankItem[]) ?? [],
     payments: (pays.data as PaymentSlice[]) ?? [],
+    promotions: (promos.data as PromoStat[]) ?? [],
     salesVsPurchases: (svp.data as SalesVsPurchase[]) ?? [],
     inventory,
   };
