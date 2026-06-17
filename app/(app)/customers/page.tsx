@@ -6,7 +6,7 @@ export default async function CustomersPage() {
   const supabase = await createClient();
   const { data: customers } = await supabase
     .from("customers")
-    .select("id, name, phone, debt")
+    .select("id, name, phone, debt, points")
     .order("created_at", { ascending: false });
 
   return (

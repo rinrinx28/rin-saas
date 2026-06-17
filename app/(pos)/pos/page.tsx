@@ -28,10 +28,21 @@ export default async function PosPage() {
         .select("id, name, price, barcode, product_id, created_at, products(name, is_active)")
         .order("created_at", { ascending: false }),
       supabase.from("inventory").select("variant_id, qty").eq("store_id", storeId),
-      supabase.from("customers").select("id, name, phone").order("name"),
-      supabase.from("organizations").select("bank_name, bank_account, bank_holder").eq("id", orgId).single(),
+      supabase.from("customers").select("id, name, phone, points").order("name"),
+      supabase
+        .from("organizations")
+        .select("bank_name, bank_account, bank_holder, loyalty_enabled, loyalty_earn_per_k, loyalty_redeem_value, loyalty_min_redeem")
+        .eq("id", orgId)
+        .single(),
       supabase.from("stores").select("bank_name, bank_account, bank_holder").eq("id", storeId).single(),
     ]);
+
+  const loyalty = {
+    enabled: org?.loyalty_enabled ?? false,
+    earnPerK: org?.loyalty_earn_per_k ?? 0,
+    redeemValue: org?.loyalty_redeem_value ?? 1000,
+    minRedeem: org?.loyalty_min_redeem ?? 0,
+  };
 
   const bank = effectiveBank(
     { name: org?.bank_name ?? null, account: org?.bank_account ?? null, holder: org?.bank_holder ?? null },
@@ -68,6 +79,7 @@ export default async function PosPage() {
       products={products}
       customers={(customers as PosCustomer[] | null) ?? []}
       bank={bank}
+      loyalty={loyalty}
     />
   );
 }

@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft,
+  Gift,
   Loader2,
   Minus,
   Plus,
@@ -22,6 +23,7 @@ import {
   confirmTransferPaidAction,
   createSaleAction,
   createTransferOrderAction,
+  previewPromoAction,
 } from "@/app/(pos)/pos/actions";
 import { CustomerCombobox, type PosCustomer } from "@/components/pos/customer-combobox";
 import { SuccessCheck } from "@/components/pos/success-check";
@@ -39,6 +41,7 @@ import { useToast } from "@/components/ui/toast";
 import { type BankInfo, buildBankQrUrl, hasBank, transferMemo } from "@/lib/payment/bank-qr";
 import { createClient } from "@/lib/supabase/client";
 import { cn, formatVnd } from "@/lib/utils";
+import { type LoyaltyConfig, redeemPreview } from "@/lib/validations/loyalty";
 
 export type { PosCustomer } from "@/components/pos/customer-combobox";
 
@@ -79,11 +82,13 @@ export function PosScreen({
   products,
   customers,
   bank,
+  loyalty,
 }: {
   storeId: string;
   products: PosProduct[];
   customers: PosCustomer[];
   bank: BankInfo;
+  loyalty: LoyaltyConfig;
 }) {
   const toast = useToast();
   const [stock, setStock] = useState<Record<string, number>>(() =>
@@ -94,11 +99,21 @@ export function PosScreen({
   const [search, setSearch] = useState("");
   const [discount, setDiscount] = useState(0);
   const [promo, setPromo] = useState("");
+  const [appliedCode, setAppliedCode] = useState("");
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [redeemPoints, setRedeemPoints] = useState(0);
   const [method, setMethod] = useState<Method>("cash");
   const [customerId, setCustomerId] = useState("");
   const [paidStr, setPaidStr] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [success, setSuccess] = useState<{ code: string; total: number; change: number; debt: number } | null>(null);
+  const [success, setSuccess] = useState<{
+    code: string;
+    total: number;
+    change: number;
+    debt: number;
+    earned?: number;
+    redeemed?: number;
+  } | null>(null);
   const [pending, setPending] = useState<{ orderId: string; code: string; total: number } | null>(null);
   const [pendingBusy, setPendingBusy] = useState(false);
   // Chọn biến thể: product = sản phẩm đang chọn; lineVariantId != null = đổi biến thể cho dòng giỏ.
@@ -186,13 +201,30 @@ export function PosScreen({
   }, [products, search]);
 
   const subtotal = cart.reduce((s, l) => s + l.price * l.qty, 0);
-  const total = Math.max(subtotal - discount, 0);
+  // Khuyến mãi & đổi điểm chỉ áp cho luồng thu trực tiếp (create_sale), không cho QR chuyển khoản.
+  const isTransfer = method === "transfer";
+  const effPromo = isTransfer ? 0 : Math.min(promoDiscount, subtotal);
+  const discountTotal = Math.min(discount + effPromo, subtotal);
+  const preLoyaltyTotal = subtotal - discountTotal;
+
+  const selectedCustomer = customerList.find((c) => c.id === customerId) ?? null;
+  const customerPoints = selectedCustomer?.points ?? 0;
+  const redeem =
+    !isTransfer && loyalty.enabled && customerId
+      ? redeemPreview(loyalty, customerPoints, redeemPoints, preLoyaltyTotal)
+      : { points: 0, value: 0 };
+
+  const total = Math.max(preLoyaltyTotal - redeem.value, 0);
   const paidEntered = paidStr === "" ? total : Math.max(Number(paidStr) || 0, 0);
   const paidToOrder = Math.min(paidEntered, total);
   const debt = total - paidToOrder;
   const change = Math.max(paidEntered - total, 0);
   const canCash = cart.length > 0 && (debt === 0 || customerId !== "");
   const canTransfer = cart.length > 0 && hasBank(bank);
+  const estEarned =
+    loyalty.enabled && customerId && loyalty.earnPerK > 0
+      ? Math.floor(total / 1000) * loyalty.earnPerK
+      : 0;
 
   function addVariant(line: { productId: string; productName: string }, v: PosVariant) {
     const have = stock[v.variantId] ?? 0;
@@ -269,6 +301,9 @@ export function PosScreen({
     setCart([]);
     setDiscount(0);
     setPromo("");
+    setAppliedCode("");
+    setPromoDiscount(0);
+    setRedeemPoints(0);
     setPaidStr("");
     setCustomerId("");
     setSuccess(null);
@@ -281,6 +316,29 @@ export function PosScreen({
     return () => clearTimeout(t);
   }, [success, reset]);
 
+  // Tự tính khuyến mãi (mã đã áp + KM công khai) theo giỏ hiện tại.
+  // previewPromoAction trả discount=0 khi subtotal<=0 → không cần setState đồng bộ.
+  useEffect(() => {
+    let active = true;
+    void previewPromoAction(subtotal, appliedCode || null).then((r) => {
+      if (active) setPromoDiscount(r.discount);
+    });
+    return () => {
+      active = false;
+    };
+  }, [subtotal, appliedCode]);
+
+  async function applyPromo() {
+    const code = promo.trim();
+    const res = await previewPromoAction(subtotal, code || null);
+    setAppliedCode(code);
+    setPromoDiscount(res.discount);
+    if (code) {
+      if (res.discount > 0) toast.success(`Đã áp dụng khuyến mãi · −${formatVnd(res.discount)}`);
+      else toast.error("Mã không hợp lệ hoặc chưa đủ điều kiện");
+    }
+  }
+
   async function pay() {
     if (!canCash) return;
     setProcessing(true);
@@ -290,6 +348,8 @@ export function PosScreen({
       discount,
       method,
       paid: paidToOrder,
+      code: appliedCode || undefined,
+      redeemPoints: redeem.points,
       items: cart.map((l) => ({ variantId: l.variantId, qty: l.qty, price: l.price })),
     });
     setProcessing(false);
@@ -303,7 +363,24 @@ export function PosScreen({
         for (const l of cart) next[l.variantId] = (next[l.variantId] ?? 0) - l.qty;
         return next;
       });
-      setSuccess({ code: res.sale.code, total: res.sale.total, change, debt });
+      // Cập nhật điểm khách trong danh sách (đổi − / cộng +) cho lần bán kế tiếp.
+      if (customerId && (redeem.points > 0 || estEarned > 0)) {
+        setCustomerList((list) =>
+          list.map((c) =>
+            c.id === customerId
+              ? { ...c, points: Math.max((c.points ?? 0) - redeem.points, 0) + estEarned }
+              : c,
+          ),
+        );
+      }
+      setSuccess({
+        code: res.sale.code,
+        total: res.sale.total,
+        change,
+        debt,
+        earned: estEarned,
+        redeemed: redeem.points,
+      });
     }
   }
 
@@ -490,7 +567,7 @@ export function PosScreen({
               <MoneyInput id="pos-discount" suggest value={discount} onChange={setDiscount} />
             </div>
 
-            {/* Mã khuyến mãi (UI — tính năng sẽ bổ sung sau) */}
+            {/* Mã khuyến mãi */}
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Ticket className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-subtle" />
@@ -498,18 +575,46 @@ export function PosScreen({
                   placeholder="Mã khuyến mãi"
                   className="h-9 pl-9"
                   value={promo}
+                  disabled={isTransfer}
                   onChange={(e) => setPromo(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void applyPromo();
+                    }
+                  }}
                 />
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => toast.info("Tính năng khuyến mãi sắp ra mắt")}
-              >
+              <Button type="button" variant="outline" size="sm" disabled={isTransfer} onClick={applyPromo}>
                 Áp dụng
               </Button>
             </div>
+
+            {effPromo > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="inline-flex items-center gap-1 text-success">
+                  Khuyến mãi{appliedCode ? ` · ${appliedCode}` : ""}
+                  <button
+                    type="button"
+                    aria-label="Bỏ khuyến mãi"
+                    onClick={() => {
+                      setAppliedCode("");
+                      setPromo("");
+                    }}
+                    className="text-fg-subtle hover:text-danger"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </span>
+                <span className="tnum text-success">−{formatVnd(effPromo)}</span>
+              </div>
+            )}
+            {redeem.value > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-success">Đổi {redeem.points} điểm</span>
+                <span className="tnum text-success">−{formatVnd(redeem.value)}</span>
+              </div>
+            )}
 
             <div className="flex items-center justify-between border-t border-border pt-2">
               <span className="font-medium">Tổng cộng</span>
@@ -522,6 +627,40 @@ export function PosScreen({
               onChange={setCustomerId}
               onCreated={(c) => setCustomerList((list) => [c, ...list])}
             />
+
+            {!isTransfer && loyalty.enabled && selectedCustomer && customerPoints > 0 && (
+              <div className="space-y-2 rounded-md border border-border bg-surface-2 p-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="inline-flex items-center gap-1.5 text-fg-muted">
+                    <Gift className="size-4 text-primary" /> Điểm hiện có:{" "}
+                    <span className="tnum font-semibold text-fg">{customerPoints}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRedeemPoints(
+                        redeemPoints > 0
+                          ? 0
+                          : Math.min(customerPoints, Math.floor(preLoyaltyTotal / Math.max(loyalty.redeemValue, 1))),
+                      )
+                    }
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    {redeemPoints > 0 ? "Bỏ" : "Dùng tối đa"}
+                  </button>
+                </div>
+                <Input
+                  inputMode="numeric"
+                  placeholder="Số điểm muốn dùng"
+                  className="tnum h-9"
+                  value={redeemPoints || ""}
+                  onChange={(e) => setRedeemPoints(Number(e.target.value.replace(/\D/g, "")) || 0)}
+                />
+                {loyalty.minRedeem > 0 && redeemPoints > 0 && redeem.points === 0 && (
+                  <p className="text-xs text-warning">Cần tối thiểu {loyalty.minRedeem} điểm để đổi.</p>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-2">
               {METHODS.map((m) => (
@@ -696,6 +835,12 @@ export function PosScreen({
             {success.debt > 0 && (
               <p className="tnum text-sm text-danger">Ghi nợ: {formatVnd(success.debt)}</p>
             )}
+            {success.redeemed ? (
+              <p className="tnum text-sm text-fg-muted">Đã dùng {success.redeemed} điểm</p>
+            ) : null}
+            {success.earned ? (
+              <p className="tnum text-sm text-success">Tích thêm +{success.earned} điểm</p>
+            ) : null}
             <p className="mt-3 text-sm text-fg-muted">Cảm ơn quý khách, hẹn gặp lại!</p>
           </div>
         </div>
