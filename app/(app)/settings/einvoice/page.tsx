@@ -1,3 +1,4 @@
+import { Construction } from "lucide-react";
 import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/app-shell/page-header";
 import { EInvoiceConfigForm } from "@/components/settings/einvoice-config-form";
@@ -79,8 +80,15 @@ export default async function EInvoiceSettingsPage() {
     <>
       <PageHeader
         title="Hóa đơn điện tử"
-        description="Chọn nhà cung cấp và khai báo thông tin phát hành HĐĐT (ADR 0008)."
+        description="Chọn nhà cung cấp và khai báo thông tin phát hành HĐĐT."
       />
+      <div className="mb-6 flex items-start gap-2.5 rounded-md border border-info/30 bg-info-bg px-4 py-3 text-sm text-info">
+        <Construction className="mt-0.5 size-4 shrink-0" />
+        <p>
+          <b>Đang phát triển.</b> Tính năng phát hành hóa đơn điện tử sẽ sớm ra mắt. Bạn có thể khai
+          báo trước thông tin người bán &amp; nhà cung cấp bên dưới để dùng ngay khi mở.
+        </p>
+      </div>
       <EInvoiceConfigForm initial={initial} />
     </>
   );
