@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ImagePlus, Loader2, Plus, Trash2, X } from "lucide-react";
+import { ImagePlus, Loader2, Plus, Trash2, Wand2, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyField } from "@/components/ui/money-input";
 import { useToast } from "@/components/ui/toast";
+import { generateBarcodeEan13, generateSku } from "@/lib/codes";
 import { uploadProductImage } from "@/lib/storage";
 import { type ProductInput, productSchema } from "@/lib/validations/catalog";
 
@@ -60,6 +61,7 @@ export function ProductForm({ categories, activeOrgId, product }: ProductFormPro
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ProductInput>({
     resolver: zodResolver(productSchema),
@@ -120,7 +122,20 @@ export function ProductForm({ categories, activeOrgId, product }: ProductFormPro
               </Field>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="SKU (tùy chọn)" htmlFor="sku" error={errors.sku?.message}>
-                  <Input id="sku" placeholder="A001" {...register("sku")} />
+                  <div className="flex gap-2">
+                    <Input id="sku" placeholder="Tự tạo nếu để trống" {...register("sku")} />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      aria-label="Tạo mã SKU tự động"
+                      title="Tạo mã tự động"
+                      onClick={() => setValue("sku", generateSku(), { shouldDirty: true })}
+                    >
+                      <Wand2 className="size-4" />
+                    </Button>
+                  </div>
                 </Field>
                 <div className="space-y-1.5">
                   <Label htmlFor="categoryId">Danh mục</Label>
@@ -219,7 +234,24 @@ export function ProductForm({ categories, activeOrgId, product }: ProductFormPro
                   <Input id={`v-name-${i}`} placeholder="Mặc định / S / Đỏ" {...register(`variants.${i}.name`)} />
                 </Field>
                 <Field label="Barcode" htmlFor={`v-bc-${i}`}>
-                  <Input id={`v-bc-${i}`} placeholder="(tùy chọn)" {...register(`variants.${i}.barcode`)} />
+                  <div className="flex gap-1">
+                    <Input id={`v-bc-${i}`} placeholder="Tự tạo" {...register(`variants.${i}.barcode`)} />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      aria-label="Tạo barcode tự động"
+                      title="Tạo barcode EAN-13"
+                      onClick={() =>
+                        setValue(`variants.${i}.barcode`, generateBarcodeEan13(), {
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <Wand2 className="size-4" />
+                    </Button>
+                  </div>
                 </Field>
                 <Field label="Giá bán" htmlFor={`v-price-${i}`} error={errors.variants?.[i]?.price?.message}>
                   <MoneyField control={control} name={`variants.${i}.price`} id={`v-price-${i}`} />
