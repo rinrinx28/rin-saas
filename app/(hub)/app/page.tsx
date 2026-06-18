@@ -27,29 +27,32 @@ export default async function ShopsPage() {
     branchByOrg.set(s.org_id, (branchByOrg.get(s.org_id) ?? 0) + 1);
   }
 
-  const shops: ShopVM[] = (orgs ?? []).map((o) => ({
-    id: o.id,
-    name: o.name,
-    role: roleByOrg.get(o.id) ?? "staff",
-    planName: PLANS[effectivePlan(o.plan, o.plan_expires_at)].name,
-    branches: branchByOrg.get(o.id) ?? 0,
-  }));
+  const shops: ShopVM[] = (orgs ?? []).map((o) => {
+    const plan = effectivePlan(o.plan, o.plan_expires_at);
+    return {
+      id: o.id,
+      name: o.name,
+      role: roleByOrg.get(o.id) ?? "staff",
+      plan,
+      planName: PLANS[plan].name,
+      branches: branchByOrg.get(o.id) ?? 0,
+    };
+  });
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Cửa hàng của bạn</h1>
-          <p className="text-sm text-fg-muted">Chọn một cửa hàng để vào quản lý.</p>
-        </div>
-        {shops.length > 0 && (
+      {shops.length > 0 && (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-fg-muted">
+            {shops.length} cửa hàng đã tham gia
+          </p>
           <Button asChild>
             <Link href="/app/new">
               <Plus /> Tạo cửa hàng
             </Link>
           </Button>
-        )}
-      </div>
+        </div>
+      )}
       <ShopList shops={shops} />
     </div>
   );

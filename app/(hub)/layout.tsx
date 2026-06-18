@@ -31,6 +31,10 @@ export default async function HubLayout({
         </div>
       </header>
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <div className="mb-6">
+          <p className="text-sm text-fg-muted">Xin chào,</p>
+          <p className="font-display text-2xl font-semibold tracking-tight">{userName}</p>
+        </div>
         <HubNav inviteCount={inviteCount} />
         <div className="mt-6">{children}</div>
       </div>

@@ -1,32 +1,40 @@
 "use client";
 
-import { ArrowRight, Plus, Store } from "lucide-react";
+import { ArrowRight, Loader2, Mail, Plus, Store } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { ACTIVE_STORE_COOKIE } from "@/lib/constants";
 import { deleteCookie } from "@/lib/cookies";
-import { ROLE_LABEL, roleBadge } from "@/lib/roles";
-import { cn } from "@/lib/utils";
+import { ROLE_LABEL } from "@/lib/roles";
 
 export interface ShopVM {
   id: string;
   name: string;
   role: string;
+  plan: string;
   planName: string;
   branches: number;
+}
+
+// Tông badge gói: free trung tính, pro thông tin, doanh nghiệp nhấn mạnh.
+const PLAN_TONE: Record<string, "neutral" | "info" | "primary"> = {
+  free: "neutral",
+  pro: "info",
+  business: "primary",
+};
+
+function monogram(name: string): string {
+  return name.trim().charAt(0).toUpperCase() || "?";
 }
 
 export function ShopList({ shops }: { shops: ShopVM[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
 
-  // Vào cửa hàng: set org đang active (Pha A — cookie) rồi mở workspace.
   // Vào cửa hàng: điều hướng URL-scope; middleware tự set active_org từ URL.
-  // Xoá chi nhánh active cũ (của cửa hàng khác) để layout chọn lại từ đầu.
   function enter(id: string) {
     setBusy(id);
     deleteCookie(ACTIVE_STORE_COOKIE);
@@ -35,58 +43,62 @@ export function ShopList({ shops }: { shops: ShopVM[] }) {
 
   if (shops.length === 0) {
     return (
-      <Card className="flex flex-col items-center gap-3 p-10 text-center">
-        <span className="flex size-12 items-center justify-center rounded-full bg-surface-2 text-fg-muted">
-          <Store className="size-6" />
+      <div className="rounded-2xl border border-dashed border-border bg-surface/60 px-6 py-14 text-center">
+        <span className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary-bg text-primary ring-1 ring-inset ring-primary/15">
+          <Store className="size-7" />
         </span>
-        <div>
-          <p className="font-medium">Bạn chưa tham gia cửa hàng nào</p>
-          <p className="text-sm text-fg-muted">
-            Tạo cửa hàng của riêng bạn, hoặc kiểm tra{" "}
-            <Link href="/app/invites" className="text-primary hover:underline">
-              lời mời
-            </Link>{" "}
-            đang chờ.
-          </p>
+        <h2 className="font-display text-xl font-semibold tracking-tight">Bắt đầu cửa hàng đầu tiên</h2>
+        <p className="mx-auto mt-1.5 max-w-sm text-sm text-fg-muted">
+          Tạo cửa hàng của riêng bạn, hoặc xem các lời mời đang chờ để tham gia cùng đội nhóm.
+        </p>
+        <div className="mt-6 flex items-center justify-center gap-2">
+          <Button asChild>
+            <Link href="/app/new">
+              <Plus /> Tạo cửa hàng
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/app/invites">
+              <Mail /> Xem lời mời
+            </Link>
+          </Button>
         </div>
-        <Button asChild>
-          <Link href="/app/new">
-            <Plus /> Tạo cửa hàng
-          </Link>
-        </Button>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <ul className="space-y-2.5">
       {shops.map((s) => (
-        <Card key={s.id} className="flex flex-col gap-4 p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary-bg text-primary">
-                <Store className="size-5" />
-              </span>
-              <div className="min-w-0">
-                <p className="truncate font-medium">{s.name}</p>
-                <p className="text-sm text-fg-muted">
-                  {s.branches} chi nhánh · {s.planName}
-                </p>
-              </div>
-            </div>
-            <Badge variant={roleBadge(s.role)}>{ROLE_LABEL[s.role] ?? s.role}</Badge>
-          </div>
-          <Button
-            variant="outline"
-            className={cn("w-full justify-between")}
-            loading={busy === s.id}
+        <li key={s.id}>
+          <button
+            type="button"
             onClick={() => enter(s.id)}
+            disabled={busy !== null}
+            aria-label={`Vào ${s.name}`}
+            className="group flex w-full items-center gap-4 rounded-xl border border-border bg-surface p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60"
           >
-            Vào quản lý
-            <ArrowRight className="size-4" />
-          </Button>
-        </Card>
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary-bg font-display text-xl font-semibold text-primary ring-1 ring-inset ring-primary/15">
+              {monogram(s.name)}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="truncate font-medium text-fg">{s.name}</span>
+                <Badge variant={PLAN_TONE[s.plan] ?? "neutral"}>{s.planName}</Badge>
+              </span>
+              <span className="mt-0.5 flex items-center gap-1.5 text-sm text-fg-muted">
+                <Store className="size-3.5 shrink-0" />
+                {s.branches} chi nhánh · {ROLE_LABEL[s.role] ?? s.role}
+              </span>
+            </span>
+            {busy === s.id ? (
+              <Loader2 className="size-5 shrink-0 animate-spin text-primary" />
+            ) : (
+              <ArrowRight className="size-5 shrink-0 text-fg-subtle transition-transform duration-200 group-hover:translate-x-1 group-hover:text-primary" />
+            )}
+          </button>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
