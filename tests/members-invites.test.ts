@@ -36,6 +36,9 @@ beforeAll(async () => {
   owner = await mkUser("owner");
   cleanupUsers.push(owner.id);
   orgId = (await owner.client.rpc("create_organization", { p_org_name: `MI ${STAMP}`, p_store_name: "CN1", p_store_address: null })).data as string;
+  // Gói Doanh nghiệp (∞ ghế) để test logic vai trò/chi nhánh không vướng trần nhân
+  // viên. Việc enforce trần ghế được kiểm riêng ở tests/subscription.test.ts.
+  await admin.from("organizations").update({ plan: "business" }).eq("id", orgId);
   cn1 = (await owner.client.from("stores").select("id").eq("org_id", orgId).single()).data!.id;
   cn2 = (await admin.from("stores").insert({ org_id: orgId, name: "CN2" }).select("id").single()).data!.id;
 }, 60000);

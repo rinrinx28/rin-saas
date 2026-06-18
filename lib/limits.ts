@@ -9,6 +9,8 @@ const TABLE: Record<LimitKind, string> = {
 };
 
 // Trả số đã dùng + giới hạn của org cho 1 loại tài nguyên.
+// Với "members", lời mời đang chờ (pending) cũng tính là 1 ghế đã giữ chỗ — khớp
+// cách enforce ở RPC (org_member_limit), tránh mời vượt trần rồi đồng ý hàng loạt.
 export async function getUsage(
   orgId: string,
   kind: LimitKind,
@@ -19,7 +21,18 @@ export async function getUsage(
     .from(TABLE[kind])
     .select("id", { count: "exact", head: true })
     .eq("org_id", orgId);
-  return { used: count ?? 0, limit: plan.limits[kind] };
+  let used = count ?? 0;
+
+  if (kind === "members") {
+    const { count: pending } = await supabase
+      .from("member_invites")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .eq("status", "pending");
+    used += pending ?? 0;
+  }
+
+  return { used, limit: plan.limits[kind] };
 }
 
 // Trả thông báo lỗi nếu đã chạm giới hạn, ngược lại null.
