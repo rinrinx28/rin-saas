@@ -49,19 +49,24 @@ WORKSPACE CỬA HÀNG (URL mang orgId)
 - Switcher đổi cửa hàng = **điều hướng** sang `/s/[orgId khác]/...` (không còn set
   cookie toàn cục).
 
-### 3. Resolve org context: param + cookie-mirror (giữ tương thích actions)
+### 3. Resolve org context: rewrite ở middleware (không dời thư mục)
 
-- **Server Component / layout** đọc `orgId` từ **route param** → đúng theo từng tab.
-- `/s/[orgId]/layout.tsx` là **guard**: kiểm tra user là thành viên org (RLS), 404/redirect
-  nếu không; nạp org/chi nhánh cho shell.
-- **Server Action** không nhận được route param trực tiếp. Để **không phải viết lại
-  ~40 action**, **middleware** ghi `orgId` từ URL `/s/[orgId]/...` vào cookie
-  `active_org` (mirror) ngay trong request → `getActiveOrgId()` hiện có vẫn trả
-  đúng org đang xem.
-- **Đánh đổi đã biết:** cookie là toàn cục nên nếu mở 2 tab khác cửa hàng rồi
-  *mutate* ở tab cũ mà chưa điều hướng lại, action có thể đọc org của tab kia. Chấp
-  nhận cho v1 (đọc/điều hướng đã đúng per-tab); sẽ thread `orgId` vào action ở pass
-  sau để chuẩn hoàn toàn.
+Thay vì vật lý dời ~25 route folder (làm vỡ hàng loạt import `@/app/(app)/...`),
+dùng **middleware** (`lib/supabase/middleware.ts`) làm hai việc:
+
+1. **`/s/[orgId]/rest` → ghi `active_org=orgId` (từ URL) + `rewrite` nội bộ về
+   `/rest`.** Route `(app)`/`(pos)`/`(print)` cũ phục vụ nguyên vẹn; URL trên trình
+   duyệt vẫn là `/s/[orgId]/...`. Page/action hiện có gọi `getActiveOrgId()` (cookie)
+   → trả đúng org của URL, **không phải sửa**.
+2. **URL trần thuộc workspace (vd `/products`) → `redirect` lên `/s/[active_org]/products`**
+   bằng cookie. Nhờ vậy mọi link/redirect nội bộ cũ tự được "nâng" về URL có org —
+   **không phải prefix từng link** (chỉ prefix nav chính + switcher để tránh nhảy thêm 1 nhịp).
+
+**Đa-tab đúng cả khi mutate:** Server Action trong App Router POST về **đúng URL trang**
+(`/s/[orgId]/...`), nên middleware set `active_org` từ URL *của tab đó* ngay trong request
+→ action đọc đúng org. Cookie tuy toàn cục nhưng mỗi request tự suy lại org từ URL.
+
+Guard: `(app)/layout` nếu `active_org` (=org trong URL) không thuộc user → về `/app`.
 
 ### 4. orgId trong URL = UUID (slug để sau)
 
@@ -73,12 +78,14 @@ thân thiện (`/s/cua-hang-abc/...`) là cải tiến sau — cần backfill + 
 - **Pha A — Hub (additive):** dựng `/app` + 4 mục; chuyển điểm-tới đăng nhập sang
   `/app`. Workspace tạm vẫn chạy cookie như cũ (nút "Vào" set cookie → `/dashboard`).
   Không phá route hiện có.
-- **Pha B — URL-scope:** dời `(app)`/`(pos)`/`(print)` vào `/s/[orgId]/`, thêm guard
-  layout + middleware mirror, prefix mọi link nav theo org, đổi nút "Vào" và switcher
-  sang điều hướng `/s/[orgId]/...`, cập nhật redirect nội bộ.
+- **Pha B — URL-scope (rewrite):** middleware rewrite `/s/[orgId]` + tự nâng URL trần
+  (mục 3); sidebar/switcher/nút "Vào" điều hướng theo `/s/[orgId]/...` (hook `useOrgPath`);
+  guard layout. Không dời thư mục, không đổi import.
 
 ## Hệ quả
 
 - Mỗi trang workspace vẫn phải đủ loading/empty/error (ADR 0004).
 - `getActiveStoreId` (chi nhánh) tạm giữ cookie; cân nhắc đưa vào URL ở pass sau.
-- ADR 0005 §"Điều hướng" cập nhật: sidebar dùng href tương đối theo org (Pha B).
+- Cảnh báo Next 16: nên đổi `middleware.ts` → `proxy.ts` (follow-up, không chặn).
+- Link nội bộ chưa prefix vẫn chạy (được middleware nâng URL) — chỉ tốn 1 redirect;
+  prefix dần để mượt hơn.

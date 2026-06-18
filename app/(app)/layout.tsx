@@ -32,8 +32,11 @@ export default async function AppLayout({
   if (!orgs || orgs.length === 0) redirect("/app");
 
   const cookieStore = await cookies();
-  const activeOrg =
-    orgs.find((o) => o.id === cookieStore.get(ACTIVE_ORG_COOKIE)?.value) ?? orgs[0];
+  // active_org được middleware ghi từ URL /s/[orgId]. Nếu org đó user không thuộc
+  // (gõ tay /s/[org-lạ]) → về hub thay vì lặng lẽ hiện cửa hàng khác. ADR 0015.
+  const cookieOrgId = cookieStore.get(ACTIVE_ORG_COOKIE)?.value;
+  if (cookieOrgId && !orgs.some((o) => o.id === cookieOrgId)) redirect("/app");
+  const activeOrg = orgs.find((o) => o.id === cookieOrgId) ?? orgs[0];
 
   // Chi nhánh của org đang active
   const { data: stores } = await supabase

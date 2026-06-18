@@ -10,6 +10,7 @@ import { useRef, useState } from "react";
 import { SIDEBAR_COOKIE } from "@/lib/constants";
 import { setCookie } from "@/lib/cookies";
 import { navGroups } from "@/lib/nav";
+import { useOrgPath } from "@/lib/use-org-path";
 import { cn } from "@/lib/utils";
 
 const WIDTH_EXPANDED = 240;
@@ -25,6 +26,7 @@ interface SidebarProps {
 
 export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
   const pathname = usePathname();
+  const orgPath = useOrgPath();
   const asideRef = useRef<HTMLElement>(null);
   const isFirstRun = useRef(true);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
@@ -34,7 +36,8 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
     setCollapsed((v) => !v);
   }
 
-  const hrefs = navGroups.flatMap((g) => g.items.map((i) => i.href));
+  // Link nav gắn org hiện tại: "/products" → "/s/<orgId>/products" (ADR 0015).
+  const hrefs = navGroups.flatMap((g) => g.items.map((i) => orgPath(i.href)));
   const activeHref = hrefs
     .filter((h) => pathname === h || pathname.startsWith(`${h}/`))
     .sort((a, b) => b.length - a.length)[0];
@@ -116,11 +119,12 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
               ))}
             {group.items.map((item) => {
               const Icon = item.icon;
-              const active = item.href === activeHref;
+              const href = orgPath(item.href);
+              const active = href === activeHref;
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={href}
                   data-nav-item
                   title={collapsed ? item.label : undefined}
                   className={cn(

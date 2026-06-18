@@ -7,8 +7,8 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ACTIVE_ORG_COOKIE, ACTIVE_STORE_COOKIE } from "@/lib/constants";
-import { deleteCookie, setCookie } from "@/lib/cookies";
+import { ACTIVE_STORE_COOKIE } from "@/lib/constants";
+import { deleteCookie } from "@/lib/cookies";
 import { ROLE_LABEL, roleBadge } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
@@ -25,12 +25,12 @@ export function ShopList({ shops }: { shops: ShopVM[] }) {
   const [busy, setBusy] = useState<string | null>(null);
 
   // Vào cửa hàng: set org đang active (Pha A — cookie) rồi mở workspace.
-  // Pha B sẽ đổi sang điều hướng /s/[orgId]/dashboard.
+  // Vào cửa hàng: điều hướng URL-scope; middleware tự set active_org từ URL.
+  // Xoá chi nhánh active cũ (của cửa hàng khác) để layout chọn lại từ đầu.
   function enter(id: string) {
     setBusy(id);
-    setCookie(ACTIVE_ORG_COOKIE, id);
     deleteCookie(ACTIVE_STORE_COOKIE);
-    router.push("/dashboard");
+    router.push(`/s/${id}/dashboard`);
   }
 
   if (shops.length === 0) {
