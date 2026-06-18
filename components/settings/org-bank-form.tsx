@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Landmark } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { updateOrgBankAction } from "@/app/(app)/settings/actions";
@@ -46,7 +47,7 @@ export function OrgBankForm({ values }: { values: OrgBankValues }) {
   return (
     <Card>
       <CardContent className="p-5">
-        <div className="grid gap-6 md:grid-cols-[1fr_280px]">
+        <div className="grid gap-6 md:grid-cols-[1fr_360px]">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <p className="text-sm text-fg-muted">
               Chọn ngân hàng và nhập số tài khoản để tạo mã QR thu tiền cho khách. Mỗi chi
@@ -126,6 +127,23 @@ function BankPreview({
           <span className="truncate">{holder || "—"}</span>
         </div>
       </div>
+
+      {/* QR VietQR mẫu — quét thử để kiểm tra ra đúng ngân hàng/tài khoản. */}
+      {bank && account.trim() && (
+        <div className="flex flex-col items-center gap-2 border-t border-border pt-3">
+          <p className="text-xs text-fg-muted">QR mẫu — quét thử bằng app ngân hàng</p>
+          <Image
+            src={`https://img.vietqr.io/image/${bank.bin}-${account.trim()}-qr_only.png${
+              holder.trim() ? `?accountName=${encodeURIComponent(holder.trim())}` : ""
+            }`}
+            alt="QR VietQR mẫu"
+            width={180}
+            height={180}
+            unoptimized
+            className="rounded-lg border border-border bg-white p-1.5"
+          />
+        </div>
+      )}
     </div>
   );
 }
