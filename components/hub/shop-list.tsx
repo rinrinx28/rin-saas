@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, Loader2, Mail, Plus, Store } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -17,6 +18,7 @@ export interface ShopVM {
   plan: string;
   planName: string;
   branches: number;
+  logoUrl: string | null;
 }
 
 // Tông badge gói: free trung tính, pro thông tin, doanh nghiệp nhấn mạnh.
@@ -78,9 +80,19 @@ export function ShopList({ shops }: { shops: ShopVM[] }) {
             aria-label={`Vào ${s.name}`}
             className="group flex w-full items-center gap-4 rounded-xl border border-border bg-surface p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60"
           >
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary-bg font-display text-xl font-semibold text-primary ring-1 ring-inset ring-primary/15">
-              {monogram(s.name)}
-            </span>
+            {s.logoUrl ? (
+              <Image
+                src={s.logoUrl}
+                alt=""
+                width={48}
+                height={48}
+                className="size-12 shrink-0 rounded-xl object-cover ring-1 ring-inset ring-border"
+              />
+            ) : (
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary-bg font-display text-xl font-semibold text-primary ring-1 ring-inset ring-primary/15">
+                {monogram(s.name)}
+              </span>
+            )}
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-2">
                 <span className="truncate font-medium text-fg">{s.name}</span>

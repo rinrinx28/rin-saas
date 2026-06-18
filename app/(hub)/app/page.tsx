@@ -16,7 +16,7 @@ export default async function ShopsPage() {
 
   // RLS chỉ trả org/chi nhánh mà user là thành viên.
   const [{ data: orgs }, { data: mems }, { data: stores }] = await Promise.all([
-    supabase.from("organizations").select("id, name, plan, plan_expires_at").order("created_at"),
+    supabase.from("organizations").select("id, name, plan, plan_expires_at, logo_url").order("created_at"),
     supabase.from("memberships").select("org_id, role").eq("user_id", user.id),
     supabase.from("stores").select("org_id"),
   ]);
@@ -36,6 +36,7 @@ export default async function ShopsPage() {
       plan,
       planName: PLANS[plan].name,
       branches: branchByOrg.get(o.id) ?? 0,
+      logoUrl: o.logo_url ?? null,
     };
   });
 

@@ -36,13 +36,18 @@ export async function updateOrgAction(values: unknown): Promise<ActionResult> {
   if ("error" in guard) return guard;
 
   const supabase = await createClient();
+  const update: { name: string; logo_url?: string | null } = { name: parsed.data.name };
+  if (parsed.data.logoUrl !== undefined) {
+    update.logo_url = parsed.data.logoUrl.trim() || null;
+  }
   const { error } = await supabase
     .from("organizations")
-    .update({ name: parsed.data.name })
+    .update(update)
     .eq("id", guard.orgId);
   if (error) return { error: "Không cập nhật được cửa hàng" };
 
   revalidatePath("/settings");
+  revalidatePath("/app");
   revalidatePath("/", "layout");
   return {};
 }

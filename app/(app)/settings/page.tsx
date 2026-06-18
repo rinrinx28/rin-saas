@@ -21,7 +21,7 @@ export default async function SettingsPage() {
     supabase
       .from("organizations")
       .select(
-        "name, bank_name, bank_account, bank_holder, loyalty_enabled, loyalty_earn_per_k, loyalty_redeem_value, loyalty_min_redeem, shift_opening_mode, shift_fixed_float",
+        "name, logo_url, bank_name, bank_account, bank_holder, loyalty_enabled, loyalty_earn_per_k, loyalty_redeem_value, loyalty_min_redeem, shift_opening_mode, shift_fixed_float",
       )
       .eq("id", orgId)
       .single(),
@@ -44,7 +44,7 @@ export default async function SettingsPage() {
       <div className="space-y-8">
         <section className="space-y-3">
           <h2 className="font-display text-lg font-semibold tracking-tight">Thông tin</h2>
-          <OrgSettingsForm name={org?.name ?? ""} />
+          <OrgSettingsForm name={org?.name ?? ""} logoUrl={org?.logo_url ?? null} orgId={orgId} />
         </section>
 
         <section className="space-y-3">
