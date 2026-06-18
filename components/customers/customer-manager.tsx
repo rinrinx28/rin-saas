@@ -40,6 +40,7 @@ interface Customer {
   name: string;
   phone: string | null;
   debt: number;
+  points: number;
 }
 
 export function CustomerManager({ customers }: { customers: Customer[] }) {
@@ -73,6 +74,7 @@ export function CustomerManager({ customers }: { customers: Customer[] }) {
             <TableRow className="hover:bg-transparent">
               <TableHead>Tên</TableHead>
               <TableHead>Điện thoại</TableHead>
+              <TableHead className="text-right">Điểm</TableHead>
               <TableHead className="text-right">Công nợ</TableHead>
               <TableHead className="w-32 text-right">Thao tác</TableHead>
             </TableRow>
@@ -82,6 +84,7 @@ export function CustomerManager({ customers }: { customers: Customer[] }) {
               <TableRow key={c.id}>
                 <TableCell className="font-medium">{c.name}</TableCell>
                 <TableCell className="tnum text-fg-muted">{c.phone ?? "—"}</TableCell>
+                <TableCell className="tnum text-right text-fg-muted">{c.points || 0}</TableCell>
                 <TableCell className={cn("tnum text-right", c.debt > 0 ? "font-medium text-danger" : "text-fg-muted")}>
                   {formatVnd(c.debt)}
                 </TableCell>

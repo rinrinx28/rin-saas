@@ -12,6 +12,8 @@ export const saleSchema = z.object({
   discount: z.number().int().min(0),
   method: z.enum(["cash", "transfer", "vnpay", "momo"]),
   paid: z.number().int().min(0),
+  code: z.string().optional(),
+  redeemPoints: z.number().int().min(0).default(0),
   items: z.array(saleItemSchema).min(1, "Giỏ hàng trống"),
 });
 

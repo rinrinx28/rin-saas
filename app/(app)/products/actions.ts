@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { generateBarcodeEan13, generateSku } from "@/lib/codes";
 import { checkLimit } from "@/lib/limits";
 import { getActiveOrgId, isManager } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
@@ -29,7 +30,7 @@ export async function createProductAction(values: unknown): Promise<ActionResult
     .insert({
       org_id: orgId,
       name: p.name,
-      sku: p.sku || null,
+      sku: p.sku?.trim() || generateSku(),
       category_id: p.categoryId || null,
       image_url: p.imageUrl || null,
       is_active: p.isActive,
@@ -43,7 +44,7 @@ export async function createProductAction(values: unknown): Promise<ActionResult
       org_id: orgId,
       product_id: product.id,
       name: v.name,
-      barcode: v.barcode || null,
+      barcode: v.barcode?.trim() || generateBarcodeEan13(),
       price: v.price,
       cost: v.cost,
     })),
@@ -75,7 +76,7 @@ export async function updateProductAction(
     .from("products")
     .update({
       name: p.name,
-      sku: p.sku || null,
+      sku: p.sku?.trim() || generateSku(),
       category_id: p.categoryId || null,
       image_url: p.imageUrl || null,
       is_active: p.isActive,
@@ -90,7 +91,7 @@ export async function updateProductAction(
         .from("product_variants")
         .update({
           name: v.name,
-          barcode: v.barcode || null,
+          barcode: v.barcode?.trim() || generateBarcodeEan13(),
           price: v.price,
           cost: v.cost,
         })
@@ -100,7 +101,7 @@ export async function updateProductAction(
         org_id: orgId,
         product_id: id,
         name: v.name,
-        barcode: v.barcode || null,
+        barcode: v.barcode?.trim() || generateBarcodeEan13(),
         price: v.price,
         cost: v.cost,
       });

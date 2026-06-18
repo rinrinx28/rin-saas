@@ -1,4 +1,4 @@
-# rin-saas — Phần mềm quản lý bán hàng & kho (POS) đa chi nhánh
+# Lumi — Phần mềm quản lý bán hàng & kho (POS) đa chi nhánh
 
 SaaS quản lý bán hàng, tồn kho, công nợ và hóa đơn cho cửa hàng/chuỗi cửa hàng SMB tại Việt Nam — đa tổ chức (multi-tenant), đa chi nhánh, thời gian thực.
 

@@ -1,4 +1,5 @@
 import { BarChart3, Boxes, ReceiptText } from "lucide-react";
+import { LogoMark } from "@/components/ui/logo";
 
 const highlights = [
   { icon: Boxes, text: "Quản lý tồn kho đa chi nhánh theo thời gian thực" },
@@ -18,9 +19,9 @@ export default function AuthLayout({
           className="pointer-events-none absolute inset-0 opacity-30 [background:radial-gradient(60%_60%_at_30%_20%,oklch(99%_0_0/.35),transparent_70%)]"
         />
         <div className="relative flex items-center gap-2">
-          <Boxes className="size-6" />
+          <LogoMark className="size-6" />
           <span className="font-display text-xl font-semibold tracking-tight">
-            rin·saas
+            Lumi
           </span>
         </div>
 
@@ -44,7 +45,7 @@ export default function AuthLayout({
         </div>
 
         <p className="relative text-xs text-primary-fg/70">
-          © 2026 rin·saas — POS cho cửa hàng vừa và nhỏ.
+          © 2026 Lumi — POS cho cửa hàng vừa và nhỏ.
         </p>
       </aside>
 

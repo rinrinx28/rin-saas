@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { DashboardMock } from "@/components/landing/dashboard-mock";
 import { Button } from "@/components/ui/button";
@@ -31,19 +31,19 @@ export function Hero({ isAuthed }: { isAuthed: boolean }) {
           </h1>
 
           <p className="hero-fx mt-5 text-lg leading-relaxed text-fg-muted">
-            rin·saas hợp nhất điểm bán hàng (POS), tồn kho đa chi nhánh, hóa đơn điện tử và đối
+            Lumi hợp nhất điểm bán hàng (POS), tồn kho đa chi nhánh, hóa đơn điện tử và đối
             soát chuyển khoản — trong một nơi, cập nhật theo thời gian thực.
           </p>
 
           <div className="hero-fx mt-8 flex flex-wrap items-center gap-3">
             <Button asChild size="lg">
-              <Link href={isAuthed ? "/dashboard" : "/register"}>
+              <Link href={isAuthed ? "/app" : "/register"}>
                 {isAuthed ? "Vào ứng dụng" : "Dùng thử miễn phí"}
                 <ArrowRight />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <a href="#features">Xem tính năng</a>
+              <a href="#showcase">Xem trải nghiệm</a>
             </Button>
           </div>
 
@@ -54,17 +54,27 @@ export function Hero({ isAuthed }: { isAuthed: boolean }) {
         </div>
 
         {/* Cột visual — phân lớp */}
-        <div className="hero-fx relative">
+        <div className="hero-visual relative">
           <DashboardMock className="relative z-10" />
 
-          {/* Chip nổi đè góc — tạo chiều sâu */}
-          <div className="absolute -bottom-5 -left-4 z-20 hidden items-center gap-2.5 rounded-xl border border-border bg-surface px-3.5 py-2.5 shadow-lg sm:flex">
+          {/* Chip nổi — tạo chiều sâu */}
+          <div className="hero-float absolute -bottom-5 -left-4 z-20 hidden items-center gap-2.5 rounded-xl border border-border bg-surface px-3.5 py-2.5 shadow-lg sm:flex">
             <span className="flex size-8 items-center justify-center rounded-lg bg-success-bg text-success">
               <CheckCircle2 className="size-4" />
             </span>
             <div className="text-xs">
               <p className="font-medium">Tiền về tài khoản</p>
               <p className="text-fg-subtle">Tự đối soát · khớp đơn</p>
+            </div>
+          </div>
+
+          <div className="hero-float absolute -top-4 -right-3 z-20 hidden items-center gap-2.5 rounded-xl border border-border bg-surface px-3.5 py-2.5 shadow-lg sm:flex">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-primary-bg text-primary">
+              <TrendingUp className="size-4" />
+            </span>
+            <div className="text-xs">
+              <p className="font-medium">Doanh thu hôm nay</p>
+              <p className="tnum text-fg-subtle">8,4tr · +18%</p>
             </div>
           </div>
         </div>

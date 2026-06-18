@@ -3,9 +3,11 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { checkLimit } from "@/lib/limits";
-import { getActiveOrgId, isManager } from "@/lib/org";
+import { getActiveOrgId, getActiveStoreId, isManager } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
+import { loyaltyConfigSchema } from "@/lib/validations/loyalty";
 import { bankSchema, orgSchema, storeSchema } from "@/lib/validations/settings";
+import { shiftConfigSchema, shiftDefinitionSchema } from "@/lib/validations/shift";
 
 export interface ActionResult {
   error?: string;
@@ -34,13 +36,18 @@ export async function updateOrgAction(values: unknown): Promise<ActionResult> {
   if ("error" in guard) return guard;
 
   const supabase = await createClient();
+  const update: { name: string; logo_url?: string | null } = { name: parsed.data.name };
+  if (parsed.data.logoUrl !== undefined) {
+    update.logo_url = parsed.data.logoUrl.trim() || null;
+  }
   const { error } = await supabase
     .from("organizations")
-    .update({ name: parsed.data.name })
+    .update(update)
     .eq("id", guard.orgId);
   if (error) return { error: "Không cập nhật được cửa hàng" };
 
   revalidatePath("/settings");
+  revalidatePath("/app");
   revalidatePath("/", "layout");
   return {};
 }
@@ -218,5 +225,95 @@ export async function deleteIntegrationAction(id: string): Promise<ActionResult>
   if (error) return { error: "Không xóa được tích hợp" };
 
   revalidatePath("/settings");
+  return {};
+}
+
+// ── Ca bán hàng (shift settings) — ADR 0012 ────────────────────
+export async function updateShiftConfigAction(values: unknown): Promise<ActionResult> {
+  const parsed = shiftConfigSchema.safeParse(values);
+  if (!parsed.success) return { error: "Dữ liệu không hợp lệ" };
+
+  const guard = await requireManager();
+  if ("error" in guard) return guard;
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("organizations")
+    .update({
+      shift_opening_mode: parsed.data.openingMode,
+      shift_fixed_float: parsed.data.fixedFloat,
+    })
+    .eq("id", guard.orgId);
+  if (error) return { error: "Không lưu được cấu hình ca" };
+
+  revalidatePath("/settings");
+  revalidatePath("/shifts");
+  return {};
+}
+
+export async function createShiftDefinitionAction(values: unknown): Promise<ActionResult> {
+  const parsed = shiftDefinitionSchema.safeParse(values);
+  if (!parsed.success) return { error: "Dữ liệu không hợp lệ" };
+
+  const guard = await requireManager();
+  if ("error" in guard) return guard;
+
+  // scope 'store' → gắn chi nhánh đang chọn; 'org' → store_id null (mặc định cửa hàng).
+  let storeId: string | null = null;
+  if (parsed.data.scope === "store") {
+    storeId = await getActiveStoreId(guard.orgId);
+    if (!storeId) return { error: "Chưa chọn chi nhánh" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("shift_definitions").insert({
+    org_id: guard.orgId,
+    store_id: storeId,
+    name: parsed.data.name,
+    start_time: parsed.data.startTime || null,
+    end_time: parsed.data.endTime || null,
+  });
+  if (error) return { error: "Không tạo được ca" };
+
+  revalidatePath("/settings");
+  revalidatePath("/shifts");
+  return {};
+}
+
+export async function deleteShiftDefinitionAction(id: string): Promise<ActionResult> {
+  const guard = await requireManager();
+  if ("error" in guard) return guard;
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("shift_definitions").delete().eq("id", id);
+  if (error) return { error: "Không xoá được ca" };
+
+  revalidatePath("/settings");
+  revalidatePath("/shifts");
+  return {};
+}
+
+// ── Tích điểm khách hàng (loyalty) — ADR 0013 ──────────────────
+export async function updateLoyaltyAction(values: unknown): Promise<ActionResult> {
+  const parsed = loyaltyConfigSchema.safeParse(values);
+  if (!parsed.success) return { error: "Dữ liệu không hợp lệ" };
+
+  const guard = await requireManager();
+  if ("error" in guard) return guard;
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("organizations")
+    .update({
+      loyalty_enabled: parsed.data.enabled,
+      loyalty_earn_per_k: parsed.data.earnPerK,
+      loyalty_redeem_value: parsed.data.redeemValue,
+      loyalty_min_redeem: parsed.data.minRedeem,
+    })
+    .eq("id", guard.orgId);
+  if (error) return { error: "Không lưu được cấu hình tích điểm" };
+
+  revalidatePath("/settings");
+  revalidatePath("/pos");
   return {};
 }

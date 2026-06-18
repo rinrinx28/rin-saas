@@ -1,19 +1,54 @@
-import { Check, Printer, Receipt, ScrollText, Zap } from "lucide-react";
+import { Check, Printer, Receipt, ScrollText, ShoppingCart, Zap } from "lucide-react";
 import { DashboardMock } from "@/components/landing/dashboard-mock";
+import { PosMock } from "@/components/landing/pos-mock";
 
 const VN_DOCS = [
   { icon: Receipt, label: "Hóa đơn điện tử chuẩn NĐ 123/2020 (HĐ GTGT & bán hàng)" },
   { icon: ScrollText, label: "Phiếu nhập kho Mẫu 01-VT (TT 133/2016)" },
-  { icon: Printer, label: "In bill máy nhiệt K58 / K80 + hóa đơn A4" },
+  { icon: Printer, label: "In bill máy nhiệt K58 / K80 và hóa đơn A4" },
 ];
 
 export function Showcase() {
   return (
     <section id="showcase" className="border-y border-border bg-surface-2/40">
       <div className="mx-auto max-w-6xl space-y-20 px-5 py-20 lg:space-y-28 lg:py-28">
-        {/* Hàng 1: Realtime */}
+        {/* Hàng 1: POS */}
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div data-reveal>
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary-bg px-3 py-1 text-xs font-medium text-primary">
+              <ShoppingCart className="size-3.5" /> Điểm bán hàng
+            </span>
+            <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+              Bán nhanh tại quầy, không để khách chờ
+            </h2>
+            <p className="mt-4 text-fg-muted">
+              Tìm hoặc quét mã vạch, chọn biến thể, áp khuyến mãi rồi thu tiền — tiền mặt hay QR
+              chuyển khoản. Kho trừ ngay, đơn ghi sổ tức thì, hợp cả màn hình cảm ứng lẫn máy quét.
+            </p>
+            <ul className="mt-6 space-y-2.5 text-sm">
+              {[
+                "Giao diện ki-ốt toàn màn hình, thao tác một chạm",
+                "Quét mã vạch & tìm sản phẩm tức thì",
+                "Thu QR VietQR — tự xác nhận khi tiền về",
+              ].map((t) => (
+                <li key={t} className="flex items-start gap-2.5">
+                  <Check className="mt-0.5 size-4 shrink-0 text-success" />
+                  <span className="text-fg-muted">{t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div data-reveal className="lg:pl-6">
+            <PosMock />
+          </div>
+        </div>
+
+        {/* Hàng 2: Realtime */}
+        <div className="grid items-center gap-12 lg:grid-cols-2">
+          <div data-reveal className="order-2 lg:order-1 lg:pr-6">
+            <DashboardMock />
+          </div>
+          <div data-reveal className="order-1 lg:order-2">
             <span className="inline-flex items-center gap-2 rounded-full bg-primary-bg px-3 py-1 text-xs font-medium text-primary">
               <Zap className="size-3.5" /> Thời gian thực
             </span>
@@ -21,9 +56,8 @@ export function Showcase() {
               Từ quầy bán đến báo cáo, đồng bộ trong tích tắc
             </h2>
             <p className="mt-4 text-fg-muted">
-              Mỗi đơn bán, mỗi phiếu nhập đẩy thẳng vào tồn kho và báo cáo qua Supabase Realtime.
-              Quản lý ngồi ở đâu cũng thấy doanh thu, tồn kho, dòng tiền cập nhật ngay — không cần
-              bấm tải lại.
+              Mỗi đơn bán, mỗi phiếu nhập đẩy thẳng vào tồn kho và báo cáo. Quản lý ngồi ở đâu cũng
+              thấy doanh thu, tồn kho và dòng tiền cập nhật ngay — không cần bấm tải lại.
             </p>
             <ul className="mt-6 space-y-2.5 text-sm">
               {[
@@ -38,12 +72,9 @@ export function Showcase() {
               ))}
             </ul>
           </div>
-          <div data-reveal className="lg:pl-6">
-            <DashboardMock />
-          </div>
         </div>
 
-        {/* Hàng 2: Chuẩn Việt Nam */}
+        {/* Hàng 3: Chuẩn Việt Nam */}
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div data-reveal className="order-2 lg:order-1">
             <div className="rounded-xl border border-border bg-surface p-6 shadow-md">
@@ -68,14 +99,14 @@ export function Showcase() {
           </div>
           <div data-reveal className="order-1 lg:order-2">
             <span className="inline-flex items-center gap-2 rounded-full bg-primary-bg px-3 py-1 text-xs font-medium text-primary">
-              🇻🇳 Made for Vietnam
+              Thiết kế cho thị trường Việt
             </span>
             <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
               Đúng chuẩn, đúng giấy tờ ở Việt Nam
             </h2>
             <p className="mt-4 text-fg-muted">
               Hóa đơn điện tử theo Nghị định 123/2020, phiếu nhập kho Mẫu 01-VT, đối soát chuyển
-              khoản qua SePay, in bill máy nhiệt — những thứ một cửa hàng Việt thật sự dùng hằng
+              khoản qua SePay, in bill máy nhiệt — những thứ một cửa hàng Việt thật sự dùng mỗi
               ngày, làm sẵn cho bạn.
             </p>
           </div>

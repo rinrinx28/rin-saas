@@ -1,8 +1,6 @@
 "use client";
 
-import { ExternalLink, FileCheck2, FileText, Receipt } from "lucide-react";
-import { useState } from "react";
-import { issueEInvoiceAction } from "@/app/(app)/orders/[id]/actions";
+import { Construction, ExternalLink, FileText, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,28 +14,17 @@ export interface EInvoiceRecord {
   issued_at: string | null;
 }
 
-// Panel HĐĐT trên trang chi tiết đơn. Hiển thị trạng thái + nút phát hành.
+// Panel HĐĐT trên trang chi tiết đơn.
+// Tính năng đang phát triển — tạm ẩn nút phát hành (xem .claude/docs/0009).
 export function EInvoicePanel({
   orderId,
   einvoice,
-  canManage,
 }: {
   orderId: string;
   einvoice: EInvoiceRecord | null;
   canManage: boolean;
 }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const issued = einvoice?.status === "issued";
-
-  async function issue() {
-    setLoading(true);
-    setError(null);
-    const res = await issueEInvoiceAction(orderId);
-    setLoading(false);
-    if (res?.error) setError(res.error);
-  }
 
   return (
     <Card>
@@ -49,7 +36,9 @@ export function EInvoicePanel({
           {issued ? (
             <Badge variant="success">Đã phát hành</Badge>
           ) : (
-            <Badge variant="neutral">Chưa phát hành</Badge>
+            <Badge variant="info">
+              <Construction /> Đang phát triển
+            </Badge>
           )}
         </div>
 
@@ -80,27 +69,11 @@ export function EInvoicePanel({
             </div>
           </div>
         ) : (
-          <div className="space-y-3 border-t border-border pt-3">
+          <div className="space-y-2 border-t border-border pt-3">
             <p className="text-fg-muted">
-              Phát hành HĐĐT có mã của cơ quan thuế cho đơn hàng này.
+              Phát hành hóa đơn điện tử có mã của cơ quan thuế đang được phát triển và sẽ sớm ra
+              mắt.
             </p>
-            {error && (
-              <p
-                role="alert"
-                className="rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-danger"
-              >
-                {error}
-              </p>
-            )}
-            {canManage ? (
-              <Button className="w-full" loading={loading} onClick={issue}>
-                <FileCheck2 className="size-4" /> Phát hành HĐĐT
-              </Button>
-            ) : (
-              <p className="text-xs text-fg-subtle">
-                Chỉ quản lý mới được phát hành HĐĐT.
-              </p>
-            )}
           </div>
         )}
       </CardContent>

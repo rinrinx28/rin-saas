@@ -3,6 +3,7 @@ import { EINVOICE_PROVIDER_KEYS } from "@/lib/einvoice/providers";
 
 export const orgSchema = z.object({
   name: z.string().min(2, "Tên cửa hàng tối thiểu 2 ký tự"),
+  logoUrl: z.string().trim().max(500).optional(),
 });
 
 // Trường tài khoản nhận tiền (chuyển khoản) — dùng chung cho org & chi nhánh.

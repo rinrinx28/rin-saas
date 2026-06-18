@@ -42,3 +42,16 @@ export const LIMIT_LABEL: Record<LimitKind, string> = {
 export function getPlan(key: string | null | undefined): Plan {
   return PLANS[(key as PlanKey) ?? "free"] ?? PLANS.free;
 }
+
+// Gói hiệu lực: gói trả phí đã hết hạn → coi như "free".
+// Thuần (không phụ thuộc Supabase/next) để test được & dùng chung server-side.
+// Phải khớp logic SQL trong org_member_limit() (migration 0034).
+export function effectivePlan(
+  plan: string | null | undefined,
+  expiresAt: string | null | undefined,
+  now: Date = new Date(),
+): PlanKey {
+  if (!plan || !(plan in PLANS)) return "free";
+  if (plan !== "free" && expiresAt && new Date(expiresAt) < now) return "free";
+  return plan as PlanKey;
+}

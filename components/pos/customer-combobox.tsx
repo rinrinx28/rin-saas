@@ -12,6 +12,7 @@ export interface PosCustomer {
   id: string;
   name: string;
   phone: string | null;
+  points?: number;
 }
 
 // Chọn khách hàng: tìm theo tên/sđt, tạo nhanh ngay tại POS.

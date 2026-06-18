@@ -1,6 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  BadgePercent,
   Boxes,
+  Clock,
   Coins,
   CreditCard,
   Factory,
@@ -17,6 +19,7 @@ import {
   Truck,
   Users,
   UsersRound,
+  Wallet,
   Warehouse,
 } from "lucide-react";
 
@@ -43,6 +46,9 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "Bán hàng (POS)", href: "/pos", icon: ShoppingCart, standalone: true },
       { label: "Đơn hàng", href: "/orders", icon: ReceiptText },
+      { label: "Khuyến mãi", href: "/promotions", icon: BadgePercent },
+      { label: "Ca bán hàng", href: "/shifts", icon: Clock },
+      { label: "Sổ quỹ", href: "/cash", icon: Wallet },
     ],
   },
   {

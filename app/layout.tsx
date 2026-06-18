@@ -21,7 +21,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "rin-saas — Quản lý bán hàng & kho",
+  title: "Lumi — Quản lý bán hàng & kho",
   description:
     "SaaS quản lý bán hàng, tồn kho và hóa đơn cho cửa hàng — đa chi nhánh.",
 };

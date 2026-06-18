@@ -2,13 +2,15 @@
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { Boxes, PanelLeft } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 import Link from "next/link";
+import { LogoMark } from "@/components/ui/logo";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
 import { SIDEBAR_COOKIE } from "@/lib/constants";
 import { setCookie } from "@/lib/cookies";
 import { navGroups } from "@/lib/nav";
+import { useOrgPath } from "@/lib/use-org-path";
 import { cn } from "@/lib/utils";
 
 const WIDTH_EXPANDED = 240;
@@ -24,6 +26,7 @@ interface SidebarProps {
 
 export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
   const pathname = usePathname();
+  const orgPath = useOrgPath();
   const asideRef = useRef<HTMLElement>(null);
   const isFirstRun = useRef(true);
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
@@ -33,7 +36,8 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
     setCollapsed((v) => !v);
   }
 
-  const hrefs = navGroups.flatMap((g) => g.items.map((i) => i.href));
+  // Link nav gắn org hiện tại: "/products" → "/s/<orgId>/products" (ADR 0015).
+  const hrefs = navGroups.flatMap((g) => g.items.map((i) => orgPath(i.href)));
   const activeHref = hrefs
     .filter((h) => pathname === h || pathname.startsWith(`${h}/`))
     .sort((a, b) => b.length - a.length)[0];
@@ -89,15 +93,19 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
       style={{ width: defaultCollapsed ? WIDTH_COLLAPSED : WIDTH_EXPANDED }}
       className="hidden shrink-0 flex-col overflow-hidden border-r border-border bg-surface md:flex"
     >
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-5">
-        <Boxes className="size-5 shrink-0 text-primary" />
+      <Link
+        href="/app"
+        title="Về danh sách cửa hàng (hub)"
+        className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-5 transition-opacity hover:opacity-80"
+      >
+        <LogoMark className="size-5 shrink-0 text-primary" />
         <span
           data-collapsible
           className="whitespace-nowrap font-display text-lg font-semibold tracking-tight"
         >
-          rin·saas
+          Lumi
         </span>
-      </div>
+      </Link>
 
       <nav className="flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-3 py-4">
         {navGroups.map((group, gi) => (
@@ -115,11 +123,12 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
               ))}
             {group.items.map((item) => {
               const Icon = item.icon;
-              const active = item.href === activeHref;
+              const href = orgPath(item.href);
+              const active = href === activeHref;
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={href}
                   data-nav-item
                   title={collapsed ? item.label : undefined}
                   className={cn(

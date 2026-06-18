@@ -26,6 +26,8 @@ export async function createSaleAction(values: unknown): Promise<SaleResult> {
     })),
     p_method: parsed.data.method,
     p_paid: parsed.data.paid,
+    p_code: parsed.data.code || null,
+    p_redeem_points: parsed.data.redeemPoints ?? 0,
   });
   if (error) {
     return {
@@ -123,6 +125,25 @@ export async function quickCreateCustomerAction(
 
   revalidatePath("/customers");
   return { customer: data as { id: string; name: string; phone: string | null } };
+}
+
+// Xem trước khuyến mãi cho giỏ hiện tại (mã + tự áp) → tổng đúng trước khi thu.
+export async function previewPromoAction(
+  subtotal: number,
+  code: string | null,
+): Promise<{ discount: number }> {
+  if (subtotal <= 0) return { discount: 0 };
+  const orgId = await getActiveOrgId();
+  if (!orgId) return { discount: 0 };
+
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("promo_discount", {
+    p_org: orgId,
+    p_subtotal: subtotal,
+    p_code: code || null,
+  });
+  const result = data as { discount?: number } | null;
+  return { discount: result?.discount ?? 0 };
 }
 
 // Poll trạng thái trả tiền của đơn (fallback khi realtime trễ).

@@ -25,6 +25,9 @@ interface ContextSwitcherProps {
   cookieName: string;
   /** Cookie cần xóa khi đổi (vd đổi org → reset chi nhánh) */
   alsoClear?: string[];
+  /** Đổi context bằng điều hướng URL thay vì cookie. Mẫu chứa ":id"
+   *  (vd "/s/:id/dashboard"). Là chuỗi để truyền được từ Server Component. */
+  navPattern?: string;
   className?: string;
 }
 
@@ -34,6 +37,7 @@ export function ContextSwitcher({
   activeId,
   cookieName,
   alsoClear,
+  navPattern,
   className,
 }: ContextSwitcherProps) {
   const router = useRouter();
@@ -42,8 +46,14 @@ export function ContextSwitcher({
   const active = options.find((o) => o.id === activeId) ?? options[0];
 
   function select(id: string) {
-    setCookie(cookieName, id);
+    if (id === active.id) return;
     alsoClear?.forEach(deleteCookie);
+    // Đổi cửa hàng → điều hướng URL (middleware tự set active_org từ URL).
+    if (navPattern) {
+      router.push(navPattern.replace(":id", id));
+      return;
+    }
+    setCookie(cookieName, id);
     router.refresh();
   }
 

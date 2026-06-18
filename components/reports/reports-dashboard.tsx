@@ -121,6 +121,12 @@ export function ReportsDashboard({ initial, initialDays }: { initial: ReportData
     name: METHOD_LABEL[p.method] ?? p.method,
     value: p.amount,
   }));
+  const promoRows = data.promotions.map((p) => ({
+    name: p.code ? `${p.name} (${p.code})` : p.name,
+    value: p.discount,
+    sub: `${p.uses} lượt · DT ${formatVnd(p.revenue)}`,
+  }));
+  const promoTotal = data.promotions.reduce((s, p) => s + p.discount, 0);
 
   return (
     <div className="space-y-4">
@@ -248,6 +254,12 @@ export function ReportsDashboard({ initial, initialDays }: { initial: ReportData
         <RankCard title="Nhập nhiều nhất" desc="Theo giá trị nhập" rows={purchasedRows} color={PALETTE[2]} />
         <RankCard title="Khách hàng hàng đầu" desc="Theo chi tiêu" rows={customerRows} color={PALETTE[1]} />
         <RankCard title="Nhà cung cấp hàng đầu" desc="Theo giá trị nhập" rows={supplierRows} color={PALETTE[4]} />
+        <RankCard
+          title="Khuyến mãi"
+          desc={`Theo tiền đã giảm · tổng ${formatVnd(promoTotal)}`}
+          rows={promoRows}
+          color={PALETTE[3]}
+        />
       </div>
 
       {/* Bán ra vs Nhập vào */}

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { MyInvite } from "@/app/(app)/invites/actions";
@@ -29,30 +28,15 @@ export default async function AppLayout({
   ]);
   const invites = (invitesData as MyInvite[] | null) ?? [];
 
-  // Chưa thuộc cửa hàng nào: nếu có lời mời thì hiện để đồng ý/từ chối,
-  // không thì sang onboarding tạo cửa hàng.
-  if (!orgs || orgs.length === 0) {
-    if (invites.length === 0) redirect("/onboarding");
-    return (
-      <div className="min-h-dvh bg-bg px-4 py-16">
-        <div className="mx-auto max-w-md">
-          <h1 className="mb-1 font-display text-2xl font-semibold tracking-tight">Lời mời tham gia</h1>
-          <p className="mb-6 text-sm text-fg-muted">
-            Bạn được mời vào cửa hàng dưới đây. Hoặc{" "}
-            <Link href="/onboarding" className="text-primary hover:underline">
-              tạo cửa hàng mới
-            </Link>
-            .
-          </p>
-          <InvitePrompt invites={invites} />
-        </div>
-      </div>
-    );
-  }
+  // Chưa thuộc cửa hàng nào → về hub cá nhân (xem lời mời / tạo cửa hàng). ADR 0015.
+  if (!orgs || orgs.length === 0) redirect("/app");
 
   const cookieStore = await cookies();
-  const activeOrg =
-    orgs.find((o) => o.id === cookieStore.get(ACTIVE_ORG_COOKIE)?.value) ?? orgs[0];
+  // active_org được middleware ghi từ URL /s/[orgId]. Nếu org đó user không thuộc
+  // (gõ tay /s/[org-lạ]) → về hub thay vì lặng lẽ hiện cửa hàng khác. ADR 0015.
+  const cookieOrgId = cookieStore.get(ACTIVE_ORG_COOKIE)?.value;
+  if (cookieOrgId && !orgs.some((o) => o.id === cookieOrgId)) redirect("/app");
+  const activeOrg = orgs.find((o) => o.id === cookieOrgId) ?? orgs[0];
 
   // Chi nhánh của org đang active
   const { data: stores } = await supabase

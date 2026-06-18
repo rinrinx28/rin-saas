@@ -1,6 +1,7 @@
-import { ArrowRight, Boxes } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LogoMark } from "@/components/ui/logo";
 
 const FOOTER_COLS = [
   {
@@ -46,7 +47,7 @@ export function CtaFooter({ isAuthed }: { isAuthed: boolean }) {
                 size="lg"
                 className="bg-white text-primary shadow-sm hover:bg-white/90"
               >
-                <Link href={isAuthed ? "/dashboard" : "/register"}>
+                <Link href={isAuthed ? "/app" : "/register"}>
                   {isAuthed ? "Vào ứng dụng" : "Dùng thử miễn phí"}
                   <ArrowRight />
                 </Link>
@@ -61,8 +62,8 @@ export function CtaFooter({ isAuthed }: { isAuthed: boolean }) {
         <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-4">
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center gap-2">
-              <Boxes className="size-5 text-primary" />
-              <span className="font-display text-lg font-semibold tracking-tight">rin·saas</span>
+              <LogoMark className="size-5 text-primary" />
+              <span className="font-display text-lg font-semibold tracking-tight">Lumi</span>
             </Link>
             <p className="mt-3 max-w-xs text-sm text-fg-muted">
               Phần mềm quản lý bán hàng, tồn kho và hóa đơn cho cửa hàng vừa và nhỏ — đa chi nhánh,
@@ -86,7 +87,7 @@ export function CtaFooter({ isAuthed }: { isAuthed: boolean }) {
         </div>
         <div className="border-t border-border">
           <p className="mx-auto max-w-6xl px-5 py-6 text-center text-xs text-fg-subtle sm:text-left">
-            © 2026 rin·saas — POS cho cửa hàng vừa và nhỏ.
+            © 2026 Lumi — POS cho cửa hàng vừa và nhỏ.
           </p>
         </div>
       </footer>

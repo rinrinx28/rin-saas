@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { ACTIVE_ORG_COOKIE, ACTIVE_STORE_COOKIE } from "@/lib/constants";
+import { effectivePlan } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 
 // Org đang active của user hiện tại (theo cookie, fallback org đầu tiên).
@@ -49,14 +50,7 @@ export async function getOrgPlan(orgId: string): Promise<string> {
     .eq("id", orgId)
     .single();
   if (!data) return "free";
-  if (
-    data.plan !== "free" &&
-    data.plan_expires_at &&
-    new Date(data.plan_expires_at) < new Date()
-  ) {
-    return "free";
-  }
-  return data.plan;
+  return effectivePlan(data.plan, data.plan_expires_at);
 }
 
 // Chi nhánh đang active của org (theo cookie, fallback chi nhánh đầu tiên).

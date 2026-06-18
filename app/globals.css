@@ -19,13 +19,13 @@
   --fg-muted: oklch(50% 0.012 80);
   --fg-subtle: oklch(62% 0.01 80);
 
-  /* Primary — Indigo/violet (hue 280) */
-  --primary: oklch(52% 0.17 280);
-  --primary-hover: oklch(46% 0.17 280);
-  --primary-active: oklch(42% 0.17 280);
+  /* Primary — Xanh dương cổ điển (hue 250) */
+  --primary: oklch(52% 0.17 250);
+  --primary-hover: oklch(46% 0.17 250);
+  --primary-active: oklch(42% 0.17 250);
   --primary-fg: oklch(99% 0 0);
-  --primary-bg: oklch(95% 0.03 280);
-  --ring: oklch(52% 0.17 280);
+  --primary-bg: oklch(95% 0.03 250);
+  --ring: oklch(52% 0.17 250);
 
   /* Ngữ nghĩa (-fg là chữ/icon, -bg là tint nền) */
   --success: oklch(52% 0.13 150);
@@ -75,12 +75,12 @@
   --fg-muted: oklch(68% 0.012 80);
   --fg-subtle: oklch(56% 0.012 80);
 
-  --primary: oklch(66% 0.16 280);
-  --primary-hover: oklch(72% 0.15 280);
-  --primary-active: oklch(60% 0.16 280);
-  --primary-fg: oklch(16% 0.02 280);
-  --primary-bg: oklch(30% 0.06 280);
-  --ring: oklch(66% 0.16 280);
+  --primary: oklch(66% 0.16 250);
+  --primary-hover: oklch(72% 0.15 250);
+  --primary-active: oklch(60% 0.16 250);
+  --primary-fg: oklch(16% 0.02 250);
+  --primary-bg: oklch(30% 0.06 250);
+  --ring: oklch(66% 0.16 250);
 
   --success: oklch(72% 0.14 150);
   --success-bg: oklch(27% 0.05 150);
@@ -235,4 +235,26 @@
     transform: translate(var(--cx), var(--cy)) rotate(var(--cr)) scale(0.4);
     opacity: 0;
   }
+}
+
+/* Banner đối tác chạy ngang (marquee). Track chứa 2 bản danh sách → dịch -50%
+   là lặp liền mạch. Reduced-motion: @media ở trên tự đóng băng. */
+@keyframes marquee-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-x var(--marquee-duration, 38s) linear infinite;
+  will-change: transform;
+}
+
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
 }

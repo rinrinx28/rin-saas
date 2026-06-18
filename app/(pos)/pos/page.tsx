@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
 import { type PosCustomer, type PosProduct, PosScreen } from "@/components/pos/pos-screen";
+import { PosShiftGate } from "@/components/pos/pos-shift-gate";
+import { type ShiftDefinition } from "@/components/shifts/shift-manager";
 import { effectiveBank } from "@/lib/payment/bank-qr";
 import { getActiveOrgId, getActiveStoreId } from "@/lib/org";
 import { createClient } from "@/lib/supabase/server";
+import type { OpeningMode } from "@/lib/validations/shift";
 
 interface VariantRow {
   id: string;
@@ -21,6 +24,45 @@ export default async function PosPage() {
   if (!storeId) redirect("/onboarding");
 
   const supabase = await createClient();
+
+  // Chặn POS khi chi nhánh chưa mở ca — bắt mở ca trước khi bán hàng.
+  const { data: openShift } = await supabase
+    .from("shifts")
+    .select("id")
+    .eq("store_id", storeId)
+    .eq("status", "open")
+    .maybeSingle();
+  if (!openShift) {
+    const [{ data: gateStore }, { data: gateOrg }, { data: defs }, { data: lastClosed }] =
+      await Promise.all([
+        supabase.from("stores").select("name").eq("id", storeId).single(),
+        supabase
+          .from("organizations")
+          .select("shift_opening_mode, shift_fixed_float")
+          .eq("id", orgId)
+          .single(),
+        supabase.rpc("effective_shift_definitions", { p_store: storeId }),
+        supabase
+          .from("shifts")
+          .select("closing_cash_counted")
+          .eq("store_id", storeId)
+          .eq("status", "closed")
+          .order("closed_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+    return (
+      <PosShiftGate
+        storeId={storeId}
+        storeName={gateStore?.name ?? ""}
+        definitions={(defs as ShiftDefinition[] | null) ?? []}
+        openingMode={(gateOrg?.shift_opening_mode ?? "manual") as OpeningMode}
+        fixedFloat={gateOrg?.shift_fixed_float ?? 0}
+        lastClosing={lastClosed?.closing_cash_counted ?? 0}
+      />
+    );
+  }
+
   const [{ data: variants }, { data: inv }, { data: customers }, { data: org }, { data: store }] =
     await Promise.all([
       supabase
@@ -28,10 +70,21 @@ export default async function PosPage() {
         .select("id, name, price, barcode, product_id, created_at, products(name, is_active)")
         .order("created_at", { ascending: false }),
       supabase.from("inventory").select("variant_id, qty").eq("store_id", storeId),
-      supabase.from("customers").select("id, name, phone").order("name"),
-      supabase.from("organizations").select("bank_name, bank_account, bank_holder").eq("id", orgId).single(),
+      supabase.from("customers").select("id, name, phone, points").order("name"),
+      supabase
+        .from("organizations")
+        .select("bank_name, bank_account, bank_holder, loyalty_enabled, loyalty_earn_per_k, loyalty_redeem_value, loyalty_min_redeem")
+        .eq("id", orgId)
+        .single(),
       supabase.from("stores").select("bank_name, bank_account, bank_holder").eq("id", storeId).single(),
     ]);
+
+  const loyalty = {
+    enabled: org?.loyalty_enabled ?? false,
+    earnPerK: org?.loyalty_earn_per_k ?? 0,
+    redeemValue: org?.loyalty_redeem_value ?? 1000,
+    minRedeem: org?.loyalty_min_redeem ?? 0,
+  };
 
   const bank = effectiveBank(
     { name: org?.bank_name ?? null, account: org?.bank_account ?? null, holder: org?.bank_holder ?? null },
@@ -68,6 +121,7 @@ export default async function PosPage() {
       products={products}
       customers={(customers as PosCustomer[] | null) ?? []}
       bank={bank}
+      loyalty={loyalty}
     />
   );
 }
