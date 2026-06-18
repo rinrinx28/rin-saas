@@ -94,8 +94,8 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
       className="hidden shrink-0 flex-col overflow-hidden border-r border-border bg-surface md:flex"
     >
       <Link
-        href="/"
-        title="Về trang chủ Lumi"
+        href="/app"
+        title="Về danh sách cửa hàng (hub)"
         className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-5 transition-opacity hover:opacity-80"
       >
         <LogoMark className="size-5 shrink-0 text-primary" />
