@@ -93,7 +93,11 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
       style={{ width: defaultCollapsed ? WIDTH_COLLAPSED : WIDTH_EXPANDED }}
       className="hidden shrink-0 flex-col overflow-hidden border-r border-border bg-surface md:flex"
     >
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-5">
+      <Link
+        href="/"
+        title="Về trang chủ Lumi"
+        className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-5 transition-opacity hover:opacity-80"
+      >
         <LogoMark className="size-5 shrink-0 text-primary" />
         <span
           data-collapsible
@@ -101,7 +105,7 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
         >
           Lumi
         </span>
-      </div>
+      </Link>
 
       <nav className="flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-3 py-4">
         {navGroups.map((group, gi) => (

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { UserMenu } from "@/components/app-shell/user-menu";
 import { HubNav } from "@/components/hub/hub-nav";
@@ -24,7 +25,9 @@ export default async function HubLayout({
   return (
     <div className="min-h-dvh bg-bg">
       <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-surface/80 px-4 backdrop-blur sm:px-6">
-        <Logo className="text-fg" />
+        <Link href="/" title="Về trang chủ Lumi" className="transition-opacity hover:opacity-80">
+          <Logo markClassName="text-primary" />
+        </Link>
         <div className="ml-auto flex items-center gap-1.5">
           <ThemeToggle />
           <UserMenu name={userName} email={user.email ?? ""} />

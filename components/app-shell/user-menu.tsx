@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut, Settings, UserRound } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { signOutAction } from "@/app/(auth)/actions";
 import {
   DropdownMenu,
@@ -10,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useOrgPath } from "@/lib/use-org-path";
 import { initials } from "@/lib/utils";
 
 interface UserMenuProps {
@@ -18,6 +20,9 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ name, email }: UserMenuProps) {
+  const router = useRouter();
+  const orgPath = useOrgPath();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -32,11 +37,12 @@ export function UserMenu({ name, email }: UserMenuProps) {
           <span className="block text-xs font-normal text-fg-muted">{email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        {/* Tài khoản → hub cá nhân (rời workspace cửa hàng). ADR 0015. */}
+        <DropdownMenuItem onSelect={() => router.push("/app/account")}>
           <UserRound /> Tài khoản
         </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Settings /> Cài đặt
+        <DropdownMenuItem onSelect={() => router.push(orgPath("/settings"))}>
+          <Settings /> Cài đặt cửa hàng
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
