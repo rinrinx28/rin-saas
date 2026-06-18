@@ -25,7 +25,7 @@ export default async function OnboardingPage() {
       <div className="w-full max-w-md space-y-6">
         <div className="flex items-center justify-center gap-2">
           <Boxes className="size-6 text-primary" />
-          <span className="font-display text-xl font-semibold tracking-tight">rin·saas</span>
+          <span className="font-display text-xl font-semibold tracking-tight">Lumi</span>
         </div>
 
         {invites.length > 0 && (

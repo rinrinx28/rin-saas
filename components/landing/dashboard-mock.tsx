@@ -15,7 +15,7 @@ export function DashboardMock({ className = "" }: { className?: string }) {
         <span className="size-2.5 rounded-full bg-danger/60" />
         <span className="size-2.5 rounded-full bg-warning/60" />
         <span className="size-2.5 rounded-full bg-success/60" />
-        <span className="ml-3 text-xs text-fg-subtle">rin·saas — Tổng quan</span>
+        <span className="ml-3 text-xs text-fg-subtle">Lumi — Tổng quan</span>
       </div>
 
       <div className="space-y-4 p-5">

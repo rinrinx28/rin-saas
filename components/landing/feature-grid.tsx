@@ -70,7 +70,7 @@ export function FeatureGrid() {
           Mọi thứ một cửa hàng cần để vận hành
         </h2>
         <p className="mt-3 text-fg-muted">
-          Thay vì ghép nối nhiều công cụ rời rạc, rin·saas gom bán hàng, kho, hóa đơn và dòng tiền
+          Thay vì ghép nối nhiều công cụ rời rạc, Lumi gom bán hàng, kho, hóa đơn và dòng tiền
           về một nơi mạch lạc.
         </p>
       </div>

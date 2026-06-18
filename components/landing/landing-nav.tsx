@@ -18,7 +18,7 @@ export function LandingNav({ isAuthed }: { isAuthed: boolean }) {
       >
         <Link href="/" className="flex items-center gap-2">
           <LogoMark className="size-5 text-primary" />
-          <span className="font-display text-lg font-semibold tracking-tight">rin·saas</span>
+          <span className="font-display text-lg font-semibold tracking-tight">Lumi</span>
         </Link>
 
         <div className="hidden items-center gap-7 md:flex">

@@ -31,7 +31,7 @@ export function Hero({ isAuthed }: { isAuthed: boolean }) {
           </h1>
 
           <p className="hero-fx mt-5 text-lg leading-relaxed text-fg-muted">
-            rin·saas hợp nhất điểm bán hàng (POS), tồn kho đa chi nhánh, hóa đơn điện tử và đối
+            Lumi hợp nhất điểm bán hàng (POS), tồn kho đa chi nhánh, hóa đơn điện tử và đối
             soát chuyển khoản — trong một nơi, cập nhật theo thời gian thực.
           </p>
 

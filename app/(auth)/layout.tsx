@@ -21,7 +21,7 @@ export default function AuthLayout({
         <div className="relative flex items-center gap-2">
           <LogoMark className="size-6" />
           <span className="font-display text-xl font-semibold tracking-tight">
-            rin·saas
+            Lumi
           </span>
         </div>
 
@@ -45,7 +45,7 @@ export default function AuthLayout({
         </div>
 
         <p className="relative text-xs text-primary-fg/70">
-          © 2026 rin·saas — POS cho cửa hàng vừa và nhỏ.
+          © 2026 Lumi — POS cho cửa hàng vừa và nhỏ.
         </p>
       </aside>
 

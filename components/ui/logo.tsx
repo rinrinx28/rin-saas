@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-// Logo mark rin·saas — ba thanh pill xếp tầng (dòng hoá đơn / lớp tồn kho) với
+// Logo mark Lumi — ba thanh pill xếp tầng (dòng hoá đơn / lớp tồn kho) với
 // chấm "tổng tiền" làm điểm nhấn, hô ứng dấu · trong tên thương hiệu.
 // Vẽ bằng currentColor → tự hợp màu theo ngữ cảnh (nền primary, sidebar, footer…).
 export function LogoMark({ className }: { className?: string }) {
@@ -19,7 +19,7 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-// Wordmark đầy đủ: mark + "rin·saas". Dùng khi muốn logo trọn gói; các nơi đã có
+// Wordmark đầy đủ: mark + "Lumi". Dùng khi muốn logo trọn gói; các nơi đã có
 // sẵn chữ riêng thì chỉ cần <LogoMark/>.
 export function Logo({
   className,
@@ -31,7 +31,7 @@ export function Logo({
   return (
     <span className={cn("flex items-center gap-2", className)}>
       <LogoMark className={markClassName} />
-      <span className="font-display font-semibold tracking-tight">rin·saas</span>
+      <span className="font-display font-semibold tracking-tight">Lumi</span>
     </span>
   );
 }

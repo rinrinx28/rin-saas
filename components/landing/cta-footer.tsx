@@ -63,7 +63,7 @@ export function CtaFooter({ isAuthed }: { isAuthed: boolean }) {
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center gap-2">
               <LogoMark className="size-5 text-primary" />
-              <span className="font-display text-lg font-semibold tracking-tight">rin·saas</span>
+              <span className="font-display text-lg font-semibold tracking-tight">Lumi</span>
             </Link>
             <p className="mt-3 max-w-xs text-sm text-fg-muted">
               Phần mềm quản lý bán hàng, tồn kho và hóa đơn cho cửa hàng vừa và nhỏ — đa chi nhánh,
@@ -87,7 +87,7 @@ export function CtaFooter({ isAuthed }: { isAuthed: boolean }) {
         </div>
         <div className="border-t border-border">
           <p className="mx-auto max-w-6xl px-5 py-6 text-center text-xs text-fg-subtle sm:text-left">
-            © 2026 rin·saas — POS cho cửa hàng vừa và nhỏ.
+            © 2026 Lumi — POS cho cửa hàng vừa và nhỏ.
           </p>
         </div>
       </footer>

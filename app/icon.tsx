@@ -1,11 +1,11 @@
 import { ImageResponse } from "next/og";
 
-// Favicon rin·saas — tile primary + logo mark (3 thanh pill xếp tầng + chấm).
-// Dựng bằng div để tương thích Satori (next/og). Màu primary ≈ oklch(52% .17 280).
+// Favicon Lumi — tile primary + logo mark (3 thanh pill xếp tầng + chấm).
+// Dựng bằng div để tương thích Satori (next/og). Màu primary ≈ oklch(52% .17 250).
 export const size = { width: 32, height: 32 };
 export const contentType = "image/png";
 
-const PRIMARY = "#5a56c7";
+const PRIMARY = "#2f5fd0";
 
 export default function Icon() {
   const bar = (width: number, opacity = 1) => ({

@@ -99,7 +99,7 @@ export function Sidebar({ defaultCollapsed = false }: SidebarProps) {
           data-collapsible
           className="whitespace-nowrap font-display text-lg font-semibold tracking-tight"
         >
-          rin·saas
+          Lumi
         </span>
       </div>
 
