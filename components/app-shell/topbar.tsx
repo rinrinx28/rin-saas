@@ -35,7 +35,7 @@ export function Topbar({
         activeId={activeOrgId}
         cookieName={ACTIVE_ORG_COOKIE}
         alsoClear={[ACTIVE_STORE_COOKIE]}
-        hrefFor={(id) => `/s/${id}/dashboard`}
+        navPattern="/s/:id/dashboard"
       />
       <ContextSwitcher
         label="Chi nhánh"
