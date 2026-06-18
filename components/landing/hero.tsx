@@ -37,7 +37,7 @@ export function Hero({ isAuthed }: { isAuthed: boolean }) {
 
           <div className="hero-fx mt-8 flex flex-wrap items-center gap-3">
             <Button asChild size="lg">
-              <Link href={isAuthed ? "/dashboard" : "/register"}>
+              <Link href={isAuthed ? "/app" : "/register"}>
                 {isAuthed ? "Vào ứng dụng" : "Dùng thử miễn phí"}
                 <ArrowRight />
               </Link>

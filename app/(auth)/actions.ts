@@ -21,7 +21,7 @@ export async function signInAction(values: unknown): Promise<ActionResult> {
   });
   if (error) return { error: "Email hoặc mật khẩu không đúng" };
 
-  redirect("/dashboard");
+  redirect("/app");
 }
 
 export async function signUpAction(values: unknown): Promise<ActionResult> {
@@ -43,7 +43,7 @@ export async function signUpAction(values: unknown): Promise<ActionResult> {
     };
   }
 
-  redirect("/onboarding");
+  redirect("/app");
 }
 
 // Luôn trả notice chung dù email có tồn tại hay không (tránh dò tài khoản).

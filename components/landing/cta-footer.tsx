@@ -47,7 +47,7 @@ export function CtaFooter({ isAuthed }: { isAuthed: boolean }) {
                 size="lg"
                 className="bg-white text-primary shadow-sm hover:bg-white/90"
               >
-                <Link href={isAuthed ? "/dashboard" : "/register"}>
+                <Link href={isAuthed ? "/app" : "/register"}>
                   {isAuthed ? "Vào ứng dụng" : "Dùng thử miễn phí"}
                   <ArrowRight />
                 </Link>

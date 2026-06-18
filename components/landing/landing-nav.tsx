@@ -37,7 +37,7 @@ export function LandingNav({ isAuthed }: { isAuthed: boolean }) {
           <ThemeToggle />
           {isAuthed ? (
             <Button asChild size="sm">
-              <Link href="/dashboard">Vào ứng dụng</Link>
+              <Link href="/app">Vào ứng dụng</Link>
             </Button>
           ) : (
             <>
