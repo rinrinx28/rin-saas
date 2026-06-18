@@ -236,3 +236,25 @@
     opacity: 0;
   }
 }
+
+/* Banner đối tác chạy ngang (marquee). Track chứa 2 bản danh sách → dịch -50%
+   là lặp liền mạch. Reduced-motion: @media ở trên tự đóng băng. */
+@keyframes marquee-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-x var(--marquee-duration, 38s) linear infinite;
+  will-change: transform;
+}
+
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
