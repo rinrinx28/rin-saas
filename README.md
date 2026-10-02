@@ -4,6 +4,10 @@ SaaS quản lý bán hàng, tồn kho, công nợ và hóa đơn cho cửa hàng
 
 > Hướng thiết kế: **Light luxury SaaS** — font Fraunces (display) + Be Vietnam Pro (UI/số), tokens oklch, light/dark. Mọi quyết định thiết kế ghi trong [`.claude/docs/`](.claude/docs/) dưới dạng ADR.
 
+> **English summary.** Lumi is a multi-tenant POS and inventory SaaS for Vietnamese retail shops and chains. It covers point of sale with barcode search and live stock levels, VietQR payments, and automatic reconciliation of bank transfers through SePay webhooks, applied idempotently so a repeated webhook is not counted twice. It also handles multi-branch inventory, supplier and customer debt, K80/K58/A4 receipt printing, real-time reports, and role-based access enforced with Postgres row-level security. Every money and stock mutation goes through an atomic `security definer` RPC.
+>
+> **Stack:** Next.js 16, React, TypeScript, Tailwind CSS v4, Supabase (Postgres, Auth, RLS, Realtime, Storage), React Hook Form + Zod, Vitest.
+
 ---
 
 ## Tính năng
